@@ -54,33 +54,29 @@ GColor config_get_color_bg() {
 }
 
 GColor config_get_color_text() {
+  return GColorBlack;
   return persist_exists(PERSIST_KEY_COLOR_TEXT) ? GColorFromHEX(persist_read_int(PERSIST_KEY_COLOR_TEXT)) : GColorBlack;
 }
 
-GColor config_get_color_light() {
-  return persist_exists(PERSIST_KEY_COLOR_LIGHT) ? GColorFromHEX(persist_read_int(PERSIST_KEY_COLOR_LIGHT)) : GColorLightGray;
-}
-
-GColor config_get_color_dark() {
+GColor config_get_color_marker() {
+  return GColorBlack;
   return persist_exists(PERSIST_KEY_COLOR_DARK) ? GColorFromHEX(persist_read_int(PERSIST_KEY_COLOR_DARK)) : GColorDarkGray;
 }
 
 GColor config_get_color_hour() {
+  return GColorBulgarianRose;
   return persist_exists(PERSIST_KEY_COLOR_HOUR) ? GColorFromHEX(persist_read_int(PERSIST_KEY_COLOR_HOUR)) : GColorBlueMoon;
 }
 
 GColor config_get_color_minute() {
+  return GColorMidnightGreen;
   return persist_exists(PERSIST_KEY_COLOR_MINUTE) ? GColorFromHEX(persist_read_int(PERSIST_KEY_COLOR_MINUTE)) : GColorMagenta;
 }
 
-GColor config_get_color_activity() {
+GColor config_get_color_activity_high() {
   return persist_exists(PERSIST_KEY_COLOR_ACTIVITY) ? GColorFromHEX(persist_read_int(PERSIST_KEY_COLOR_ACTIVITY)) : GColorBlack;
 }
 
 bool config_get_use_celcius() {
   return persist_exists(PERSIST_KEY_USE_CELCIUS) ? persist_read_int(PERSIST_KEY_USE_CELCIUS) > 0 : true;
-}
-
-int config_get_activity_sensitivity() {
-  return persist_exists(PERSIST_KEY_ACTIVITY_SENSITIVITY) ? persist_read_int(PERSIST_KEY_ACTIVITY_SENSITIVITY) : 800;
 }

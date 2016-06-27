@@ -23,23 +23,26 @@
 #define PERSIST_KEY_COLOR_BG 6
 #define PERSIST_KEY_COLOR_TEXT 7
 #define PERSIST_KEY_ACTIVITY 8
-#define PERSIST_KEY_LAST_ACTIVITY_UPDATE 9
+#define PERSIST_KEY_LAST_ACTIVITY_TIME 9
 #define PERSIST_KEY_LAST_ACTIVITY_VALUE 10
+#define PERSIST_KEY_LAST_BLOCK_ACTIVITY_TIME 18
+#define PERSIST_KEY_LAST_BLOCK_ACTIVITY_VALUE 19
+#define PERSIST_KEY_LAST_ACTIVITY_STEPS_PER_MINUTE 21
 #define PERSIST_KEY_COLOR_LIGHT 11
 #define PERSIST_KEY_COLOR_DARK 12
 #define PERSIST_KEY_COLOR_MINUTE 13
 #define PERSIST_KEY_COLOR_HOUR 14
 #define PERSIST_KEY_COLOR_ACTIVITY 15
 #define PERSIST_KEY_ACTIVITY_SENSITIVITY 16
+#define PERSIST_KEY_SLEEP 17
+#define PERSIST_KEY_ACTIVITY_GOAL_TIME 20
 
 void config_received_callback(DictionaryIterator* iterator);
 GColor config_get_color_bg();
 GColor config_get_color_front();
-GColor config_get_color_light();
-GColor config_get_color_dark();
+GColor config_get_color_marker();
 GColor config_get_color_hour();
 GColor config_get_color_minute();
-GColor config_get_color_activity();
+GColor config_get_color_activity_high();
 GColor config_get_color_text();
 bool config_get_use_celcius();
-int config_get_activity_sensitivity();

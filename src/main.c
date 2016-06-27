@@ -1,13 +1,18 @@
 #include <pebble.h>
 #include "weather.h"
+#include "health.h"
 #include "config.h"
 #include "communication.h"
 #include "ui.h"
+
+// #define DEBUG 1
 
 static Window *s_main_window;
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Tick tock");
+  
+  health_update();
   
   if (tick_time->tm_min % 30 == 0) {
     weather_update();
