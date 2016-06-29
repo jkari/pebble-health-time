@@ -15,18 +15,20 @@ static GBitmap *s_bitmap_weather = 0;
 static GBitmap *s_bitmap_bluetooth = 0;
 static GBitmap *s_bitmap_sunrise = 0;
 static GBitmap *s_bitmap_sunset = 0;
-static GBitmap *s_bitmap_steps = 0;
+static GBitmap *s_bitmap_steps1 = 0;
+static GBitmap *s_bitmap_steps2 = 0;
 static GBitmap *s_bitmap_achievement = 0;
 static BitmapLayer *s_layer_bluetooth;
 static BitmapLayer *s_layer_weather;
 static GFont s_font_big;
 static GFont s_font_small;
-static bool is_battery_animation_active = false;
-static int battery_animation_percent = 0;
-static bool show_activity_icon = false;
+static bool s_is_battery_animation_active = false;
+static int s_battery_animation_percent = 0;
+static bool s_is_fast_update_enabled = false;
 
 static void _draw_arc(GContext* ctx, GPoint center, int radius, int width, float angle_from, float angle_to, GColor color) {
   graphics_context_set_fill_color(ctx, color);
+  
   graphics_fill_radial(
     ctx,
     GRect(
@@ -85,15 +87,18 @@ static void _generate_bitmaps() {
   APP_LOG(APP_LOG_LEVEL_INFO, "Generating bitmaps");
   _ui_set_weather_icon();
   
+  _ui_reload_bitmap(&s_bitmap_steps1, RESOURCE_ID_IMAGE_STEPS, GColorBlack);
+  _ui_reload_bitmap(&s_bitmap_steps2, RESOURCE_ID_IMAGE_STEPS, GColorLightGray);
+  
   GColor color = GColorBlack;
   _ui_reload_bitmap(&s_bitmap_sunrise, RESOURCE_ID_IMAGE_SUN, color);
   _ui_reload_bitmap(&s_bitmap_sunset, RESOURCE_ID_IMAGE_MOON, color);
 }
 
 static void _charge_animation_callback(void *data) {
-  battery_animation_percent = (battery_animation_percent + 2) % 100;
+  s_battery_animation_percent = (s_battery_animation_percent + 2) % 100;
   
-  if (is_battery_animation_active) {
+  if (s_is_battery_animation_active) {
     app_timer_register(30, _charge_animation_callback, NULL);
   }
   
@@ -228,15 +233,18 @@ static void _activity_animation_callback(void *data) {
 static void _draw_current_activity(GContext* ctx, GPoint offset) {
   int current_activity = health_get_current_steps_per_minute();
   
-  if (current_activity < ACTIVITY_SHOW_SPM_MIN) {
+  if (!health_is_fast_update_active()) {
     return;
   }
   
-  show_activity_icon = !show_activity_icon;
-  
-  if (show_activity_icon) {
-    graphics_draw_bitmap_in_rect(ctx, s_bitmap_steps, GRect(offset.x + STEPS_X - STEPS_WIDTH/2, offset.y + STEPS_Y, STEPS_WIDTH, STEPS_HEIGHT));
+  GBitmap *bitmap = 0;
+  if (time(NULL) % (2 * UI_UPDATE_ACTIVITY_MS / 1000) < (UI_UPDATE_ACTIVITY_MS / 1000)) {
+    bitmap = s_bitmap_steps1;
+  } else {
+    bitmap = s_bitmap_steps2;
   }
+  
+  graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(offset.x + STEPS_X - STEPS_WIDTH/2, offset.y + STEPS_Y, STEPS_WIDTH, STEPS_HEIGHT));
   
   _draw_arc(
     ctx,
@@ -251,6 +259,11 @@ static void _draw_current_activity(GContext* ctx, GPoint offset) {
 
 static void _draw_text_bg(GContext *ctx, GPoint offset) {
   graphics_context_set_fill_color(ctx, GColorDarkGray);
+  
+  if (persist_exists(666)) {
+    graphics_context_set_fill_color(ctx, GColorYellow);
+  }
+  
   graphics_fill_rect(ctx, GRect(offset.x + WEEKDAY_X, offset.y + WEEKDAY_Y, WEEKDAY_BG_WIDTH, WEEKDAY_BG_HEIGHT), 0, GCornerNone);
 }
 
@@ -346,6 +359,16 @@ static void _layer_hands_update_callback(Layer *layer, GContext *ctx) {
   _draw_hands(ctx, GPoint(bounds.size.w / 2, bounds.size.h / 2));
 }
 
+void _fast_update(void* data) {
+  if (!health_is_fast_update_active()) {
+    s_is_fast_update_enabled = false;
+    return;
+  }
+  
+  app_timer_register(UI_UPDATE_ACTIVITY_MS, _fast_update, NULL);
+  layer_mark_dirty(s_layer_canvas);
+}
+
 static void _layer_canvas_update_callback(Layer *layer, GContext *ctx) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Update canvas");
 
@@ -360,11 +383,16 @@ static void _layer_canvas_update_callback(Layer *layer, GContext *ctx) {
   _draw_activity_cycle(ctx, offset);
   _draw_text_bg(ctx, offset);
   _draw_markers(ctx, offset);
+  
+  if (!s_is_fast_update_enabled && health_is_fast_update_active()) {
+    s_is_fast_update_enabled = true;
+    app_timer_register(UI_UPDATE_ACTIVITY_MS, _fast_update, NULL);
+  }
 }
 
 static void _layer_battery_update_callback(Layer *layer, GContext *ctx) {  
   BatteryChargeState charge_state = battery_state_service_peek();
-  int current_charge = is_battery_animation_active ? battery_animation_percent : charge_state.charge_percent;
+  int current_charge = s_is_battery_animation_active ? s_battery_animation_percent : charge_state.charge_percent;
   
   for (int i = 0; i < current_charge; i+= 10) {
     GColor color = GColorOrange;
@@ -416,7 +444,8 @@ void ui_load(Window *window) {
   s_bitmap_bluetooth = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BLUETOOTH);
   s_bitmap_sunrise = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUN);
   s_bitmap_sunset = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_MOON);
-  s_bitmap_steps = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEPS);
+  s_bitmap_steps1 = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEPS);
+  s_bitmap_steps2 = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEPS);
   s_bitmap_achievement = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACHIEVEMENT);
   
   s_layer_day_of_month = text_layer_create(GRect(center.x + DATE_X, center.y + WEEKDAY_Y + WEEKDAY_FONT_Y, 26, 26));
@@ -480,7 +509,8 @@ void ui_unload(void) {
   gbitmap_destroy(s_bitmap_bluetooth);
   gbitmap_destroy(s_bitmap_sunrise);
   gbitmap_destroy(s_bitmap_sunset);
-  gbitmap_destroy(s_bitmap_steps);
+  gbitmap_destroy(s_bitmap_steps1);
+  gbitmap_destroy(s_bitmap_steps2);
   gbitmap_destroy(s_bitmap_achievement);
 }
 
@@ -500,12 +530,12 @@ void ui_bluetooth_set_available(bool is_available) {
 }
 
 void ui_battery_charge_start(void) {
-  is_battery_animation_active = true;
+  s_is_battery_animation_active = true;
   _charge_animation_callback(NULL);
 }
 
 void ui_battery_charge_stop(void) {
-  is_battery_animation_active = false;
+  s_is_battery_animation_active = false;
   layer_mark_dirty(s_layer_battery);
 }
 
@@ -524,11 +554,4 @@ void ui_update_colors() {
   text_layer_set_text_color(s_layer_day_of_month, config_get_color_bg());
 
   ui_show();
-}
-
-void ui_poll_activity(void* data) {
-  if (health_get_current_steps_per_minute() >= ACTIVITY_SHOW_SPM_MIN) {
-    app_timer_register(UI_UPDATE_ACTIVITY_MS, ui_poll_activity, NULL);
-    layer_mark_dirty(s_layer_canvas);
-  }
 }

@@ -3,8 +3,8 @@
 #define UI_UPDATE_ACTIVITY_MS 15000
 #define STEPS_X 0
 #define STEPS_Y -40
-#define STEPS_WIDTH 16
-#define STEPS_HEIGHT 13
+#define STEPS_WIDTH 14
+#define STEPS_HEIGHT 14
 #define STEPS_CIRCLE_WIDTH 3
 #define STEPS_CIRCLE_RADIUS 12
 #define BATTERY_X PBL_IF_ROUND_ELSE(10, 10)
@@ -43,9 +43,9 @@
 #define WEEKDAY_BG_WIDTH 45
 #define WEEKDAY_BG_HEIGHT 12
 #define DATE_X PBL_IF_ROUND_ELSE(40, 40)
-#define PIN_RADIUS 7
-#define PIN_ARC_RADIUS PBL_IF_ROUND_ELSE(60, 60)
-#define PIN_ICON_WIDTH 20
+#define PIN_RADIUS 11
+#define PIN_ARC_RADIUS PBL_IF_ROUND_ELSE(57, 60)
+#define PIN_ICON_WIDTH 14
 
 #define ANGLE_POINT(cx,cy,angle,radius) {.x=(int16_t)(sin_lookup((angle)/360.f*TRIG_MAX_ANGLE)*(radius)/TRIG_MAX_RATIO)+cx,.y=(int16_t)(-cos_lookup((angle)/360.f*TRIG_MAX_ANGLE)*(radius)/TRIG_MAX_RATIO)+cy}
 

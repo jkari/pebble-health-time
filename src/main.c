@@ -12,8 +12,6 @@ static Window *s_main_window;
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Tick tock");
   
-  health_update();
-  
   if (tick_time->tm_min % 30 == 0) {
     weather_update();
   }
@@ -70,6 +68,10 @@ static void main_window_load(Window *window) {
     .did_focus = _focused_handler,
     .will_focus = _focusing_handler
   });
+  
+  if (!app_worker_is_running()) {
+    app_worker_launch();
+  }
   
   ui_update_weather();
   ui_update_date();

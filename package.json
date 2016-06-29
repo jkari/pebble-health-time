@@ -31,8 +31,26 @@
         "resources": {
             "media": [
                 {
+                    "file": "images/steps-small.png",
+                    "name": "IMAGE_STEPS",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
                     "file": "images/achievement-small.png",
                     "name": "IMAGE_ACHIEVEMENT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/sun-small.png",
+                    "name": "IMAGE_SUN",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/moon-small.png",
+                    "name": "IMAGE_MOON",
                     "targetPlatforms": null,
                     "type": "bitmap"
                 },
@@ -47,24 +65,6 @@
                     "name": "FONT_16",
                     "targetPlatforms": null,
                     "type": "font"
-                },
-                {
-                    "file": "images/active.png",
-                    "name": "IMAGE_STEPS",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
-                    "file": "images/sun.png",
-                    "name": "IMAGE_SUN",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
-                    "file": "images/moon.png",
-                    "name": "IMAGE_MOON",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
                 },
                 {
                     "file": "images/thunder-light.png",
