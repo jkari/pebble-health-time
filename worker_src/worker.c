@@ -1,10 +1,17 @@
 #include <pebble_worker.h>
+#include "health_worker.h"
 #include "worker.h"
-#include "health.h"
 
 static void tick_handler(struct tm *tick_timer, TimeUnits units_changed) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Worker minute update");
-  health_update();
+  health_update_minute();
+
+  if (tick_timer->tm_min == 0 || tick_timer->tm_min == 30) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Worker half hour update");
+    health_update_half_hour();
+  }
+
+  APP_LOG(APP_LOG_LEVEL_INFO, "Worker updates complete");
 }
 
 static void worker_init() {
@@ -12,7 +19,6 @@ static void worker_init() {
 }
 
 static void worker_deinit() {
-  // Stop using the TickTimerService
   tick_timer_service_unsubscribe();
 }
 

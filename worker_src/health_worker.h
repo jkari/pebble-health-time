@@ -15,5 +15,5 @@
 #define PERSIST_HEALTH_LAST_ACTIVITY_SPM 107
 #define PERSIST_HEALTH_FAST_POLL_ACTIVE 108
 
-void health_get_activity(uint8_t *data);
-void health_get_sleep(uint8_t *data);
+void health_update_minute();
+void health_update_half_hour();
