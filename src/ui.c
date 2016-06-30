@@ -2,6 +2,7 @@
 #include "config.h"
 #include "weather.h"
 #include "ui.h"
+#include "draw.h"
 #include "health.h"
 #include "gbitmap_color_palette_manipulator.h"
 
@@ -24,25 +25,6 @@ static GFont s_font_big;
 static GFont s_font_small;
 static bool s_is_battery_animation_active = false;
 static int s_battery_animation_percent = 0;
-static bool s_is_fast_update_enabled = false;
-
-static void _draw_arc(GContext* ctx, GPoint center, int radius, int width, float angle_from, float angle_to, GColor color) {
-  graphics_context_set_fill_color(ctx, color);
-  
-  graphics_fill_radial(
-    ctx,
-    GRect(
-      center.x - radius,
-      center.y - radius,
-      2 * radius,
-      2 * radius
-    ),
-    GOvalScaleModeFitCircle,
-    width,
-    DEG_TO_TRIGANGLE(angle_from),
-    DEG_TO_TRIGANGLE(angle_to)
-  );
-}
 
 static int get_hour_angle() {
   time_t temp = time(NULL); 
@@ -185,7 +167,7 @@ static void _draw_activity_cycle(GContext *ctx, GPoint offset) {
     
     if (activity_level != current_activity_level || i == current_index + 12 * 12 - 1) {
       if (current_activity_level > 0) {
-        _draw_arc(
+        draw_arc(
           ctx, offset, ARC_RADIUS_ACTIVITY, WIDTH_CIRCLE,
           current_level_start_index * (360.f / (12.f * 12.f)),
           i * (360.f / (12.f * 12.f)) + 0.1f,
@@ -212,7 +194,7 @@ void _draw_sleep_cycle(GContext *ctx, GPoint offset) {
    
     if (sleep_level != current_sleep_level || i == current_index + 24 * 12 - 1) {
       if (current_sleep_level != 0) {
-        _draw_arc(
+        draw_arc(
           ctx, offset, ARC_RADIUS_SLEEP, WIDTH_CIRCLE,
           current_level_start_index * (360.f / (12.f * 12.f)),
           i * (360.f / (12.f * 12.f)) + 0.1f,
@@ -233,12 +215,12 @@ static void _activity_animation_callback(void *data) {
 static void _draw_current_activity(GContext* ctx, GPoint offset) {
   int current_activity = health_get_current_steps_per_minute();
   
-  if (!health_is_fast_update_active()) {
+  if (current_activity < CURRENT_ACTIVITY_SHOW_LIMIT_SPM) {
     return;
   }
   
   GBitmap *bitmap = 0;
-  if (time(NULL) % (2 * UI_UPDATE_ACTIVITY_MS / 1000) < (UI_UPDATE_ACTIVITY_MS / 1000)) {
+  if (time(NULL) % (2 * UI_UPDATE_ACTIVITY_SECS) < UI_UPDATE_ACTIVITY_SECS) {
     bitmap = s_bitmap_steps1;
   } else {
     bitmap = s_bitmap_steps2;
@@ -246,7 +228,7 @@ static void _draw_current_activity(GContext* ctx, GPoint offset) {
   
   graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(offset.x + STEPS_X - STEPS_WIDTH/2, offset.y + STEPS_Y, STEPS_WIDTH, STEPS_HEIGHT));
   
-  _draw_arc(
+  draw_arc(
     ctx,
     GPoint(offset.x + STEPS_X, offset.y + STEPS_Y + STEPS_HEIGHT/2),
     STEPS_CIRCLE_RADIUS,
@@ -281,7 +263,7 @@ static void _draw_activity_progress(GContext* ctx, GPoint offset) {
   float min_progress = current_score > avg_score ? avg_score : current_score;
   float max_progress = current_score > avg_score ? current_score : avg_score;
   
-  _draw_arc(
+  draw_arc(
     ctx,
     offset,
     ACTIVITY_PROGRESS_RADIUS,
@@ -293,7 +275,7 @@ static void _draw_activity_progress(GContext* ctx, GPoint offset) {
   
   GColor color = current_score > avg_score ? GColorGreen : GColorRed;
   
-  _draw_arc(
+  draw_arc(
     ctx,
     offset,
     ACTIVITY_PROGRESS_RADIUS,
@@ -359,16 +341,6 @@ static void _layer_hands_update_callback(Layer *layer, GContext *ctx) {
   _draw_hands(ctx, GPoint(bounds.size.w / 2, bounds.size.h / 2));
 }
 
-void _fast_update(void* data) {
-  if (!health_is_fast_update_active()) {
-    s_is_fast_update_enabled = false;
-    return;
-  }
-  
-  app_timer_register(UI_UPDATE_ACTIVITY_MS, _fast_update, NULL);
-  layer_mark_dirty(s_layer_canvas);
-}
-
 static void _layer_canvas_update_callback(Layer *layer, GContext *ctx) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Update canvas");
 
@@ -383,11 +355,6 @@ static void _layer_canvas_update_callback(Layer *layer, GContext *ctx) {
   _draw_activity_cycle(ctx, offset);
   _draw_text_bg(ctx, offset);
   _draw_markers(ctx, offset);
-  
-  if (!s_is_fast_update_enabled && health_is_fast_update_active()) {
-    s_is_fast_update_enabled = true;
-    app_timer_register(UI_UPDATE_ACTIVITY_MS, _fast_update, NULL);
-  }
 }
 
 static void _layer_battery_update_callback(Layer *layer, GContext *ctx) {  

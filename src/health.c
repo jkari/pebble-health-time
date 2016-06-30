@@ -76,10 +76,6 @@ int health_get_index_for_time(time_t time, bool suppressTo12Hours) {
   return hour * 12 + (int)(tick->tm_min / 5); 
 }
 
-bool health_is_fast_update_active() {
-  return persist_read_int(PERSIST_HEALTH_FAST_POLL_ACTIVE) == 1;
-}
-
 float health_get_current_score() {
   float average = _get_daily_avg_steps();
   return average > 0 ? (float)_get_current_steps() / average : 0;

@@ -1,12 +1,15 @@
 #include <pebble_worker.h>
 #include "health_worker.h"
 
-void _get_activity(uint8_t *data) {
+static uint8_t _sleep_data[DATA_ARRAY_SIZE];
+static uint8_t _activity_data[DATA_ARRAY_SIZE];
+
+void _load_activity_data() {
   if (persist_exists(PERSIST_HEALTH_ACTIVITY)) {
-    persist_read_data(PERSIST_HEALTH_ACTIVITY, data, DATA_ARRAY_SIZE * sizeof(uint8_t));
+    persist_read_data(PERSIST_HEALTH_ACTIVITY, _activity_data, DATA_ARRAY_SIZE * sizeof(uint8_t));
   } else {
     for (int i = 0; i < DATA_ARRAY_SIZE; i++) {
-      data[i] = 0;
+      _activity_data[i] = 0;
     }
   }
   
@@ -26,12 +29,12 @@ void _get_activity(uint8_t *data) {
 #endif
 }
 
-void _get_sleep(uint8_t *data) {
+void _load_sleep_data() {
   if (persist_exists(PERSIST_HEALTH_SLEEP)) {
-    persist_read_data(PERSIST_HEALTH_SLEEP, data, DATA_ARRAY_SIZE * sizeof(uint8_t));
+    persist_read_data(PERSIST_HEALTH_SLEEP, _sleep_data, DATA_ARRAY_SIZE * sizeof(uint8_t));
   } else {
     for (int i = 0; i < DATA_ARRAY_SIZE; i++) {
-      data[i] = 0;
+      _sleep_data[i] = 0;
     }
   }
   
@@ -98,13 +101,10 @@ static void _set_timeline_activity_achieved() {
   persist_write_int(PERSIST_HEALTH_ACTIVITY_GOAL_TIME, time(NULL));
 }
 
-static void _save_activity(int index, int value) {
+static void _set_activity(int index, int value) {
   value = value > 255 ? 255 : value;
   
-  uint8_t data[DATA_ARRAY_SIZE];
-  _get_activity(data);
-  data[index] = (uint8_t)value;
-  persist_write_data(PERSIST_HEALTH_ACTIVITY, data, DATA_ARRAY_SIZE * sizeof(uint8_t));
+  _activity_data[index] = (uint8_t)value;
 }
 
 void _save_current_activity(void *data) {
@@ -118,29 +118,31 @@ void _save_current_activity(void *data) {
   persist_write_int(PERSIST_HEALTH_LAST_ACTIVITY_SPM, steps_per_minute);
   
   if (_get_current_steps_per_minute() >= FAST_POLL_MIN_SPM) {
+    AppWorkerMessage msg_data;
+    app_worker_send_message(MESSAGE_ID_WORKER_INSTANT_UPDATE, &msg_data);
     app_timer_register(UPDATE_ACTIVITY_MS, _save_current_activity, NULL);
-    persist_write_int(PERSIST_HEALTH_FAST_POLL_ACTIVE, 1);
-  } else {
-    persist_write_int(PERSIST_HEALTH_FAST_POLL_ACTIVE, 0);
   }
 }
 
-static void _save_sleep(int key, uint8_t value) {
+static void _set_sleep(int key, uint8_t value) {
   value = value > 15 ? 15 : value;
-  
-  uint8_t data[DATA_ARRAY_SIZE];
-  _get_sleep(data);
   
   int index = key / 2;
   if (key % 2 == 0) {
-    data[index] = data[index] & 0x0f;
-    data[index] = data[index] | (value << 4);
+    _sleep_data[index] = _sleep_data[index] & 0x0f;
+    _sleep_data[index] = _sleep_data[index] | (value << 4);
   } else {
-    data[index] = data[index] & 0xf0;
-    data[index] = data[index] | value;
+    _sleep_data[index] = _sleep_data[index] & 0xf0;
+    _sleep_data[index] = _sleep_data[index] | value;
   }
-  
-  persist_write_data(PERSIST_HEALTH_SLEEP, data, DATA_ARRAY_SIZE * sizeof(uint8_t));
+}
+
+static void _save_sleep_data() {
+  persist_write_data(PERSIST_HEALTH_SLEEP, _sleep_data, DATA_ARRAY_SIZE * sizeof(uint8_t));
+}
+
+static void _save_activity_data() {
+  persist_write_data(PERSIST_HEALTH_ACTIVITY, _activity_data, DATA_ARRAY_SIZE * sizeof(uint8_t));
 }
 
 int _get_avg_steps_between(time_t start, time_t end) {  
@@ -151,8 +153,6 @@ int _get_avg_steps_between(time_t start, time_t end) {
             health_service_metric_averaged_accessible(metric, start, end, scope);
   
   if(mask & HealthServiceAccessibilityMaskAvailable) {
-    health_service_sum_averaged(metric, start, end, scope);
-    APP_LOG(APP_LOG_LEVEL_INFO, "Hello");
     return (int)health_service_sum_averaged(metric, start, end, scope);
   }
   
@@ -185,7 +185,7 @@ bool _callback_sleep_data(HealthActivity activity, time_t time_start, time_t tim
     int sleep_type = (activity == HealthActivityRestfulSleep) ? 2 : 1;
 
     for (int i = start_index; i < iterations; i++) {
-        _save_sleep(i, sleep_type);
+        _set_sleep(i, sleep_type);
     }
 
     return true;
@@ -200,7 +200,7 @@ void health_update_minute() {
   
   int total_activity = _get_today_total_activity();
     
-  _save_activity(last_index_activity, _get_current_block_activity());
+  _set_activity(last_index_activity, _get_current_block_activity());
   
   HealthActivityMask activities = health_service_peek_current_activities();
 
@@ -212,7 +212,7 @@ void health_update_minute() {
     sleep_status = 1;
   }
   
-  _save_sleep(_get_index_for_time(current_time, false), sleep_status);
+  _set_sleep(_get_index_for_time(current_time, false), sleep_status);
   
   if (last_index_activity != current_index_activity) {
     _save_health_block_activity(current_time, total_activity);
@@ -226,13 +226,25 @@ void health_update_minute() {
 }
 
 void health_update_half_hour() {
-    health_service_activities_iterate(
-        HealthActivitySleep & HealthActivityRestfulSleep,
-        time(NULL) - 3600,
-        time(NULL),
-        HealthIterationDirectionFuture,
-        _callback_sleep_data,
-        (void*)NULL
-    );
+  health_service_activities_iterate(
+    HealthActivitySleep | HealthActivityRestfulSleep,
+    time(NULL) - 3600,
+    time(NULL),
+    HealthIterationDirectionFuture,
+    _callback_sleep_data,
+    (void*)NULL
+  );
+
+  _save_activity_data();
+  _save_sleep_data();
 }
 
+void health_init() {
+  _load_activity_data();
+  _load_sleep_data();
+}
+
+void health_deinit() {
+  _save_activity_data();
+  _save_sleep_data();
+}

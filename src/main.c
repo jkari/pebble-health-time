@@ -23,6 +23,10 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   ui_show();
 }
 
+static void worker_message_handler(uint16_t type, AppWorkerMessage *data) {
+  ui_show();
+}
+
 static void battery_handler(BatteryChargeState charge_state) {
   if (charge_state.is_charging) {
     ui_battery_charge_start();
@@ -72,6 +76,8 @@ static void main_window_load(Window *window) {
   if (!app_worker_is_running()) {
     app_worker_launch();
   }
+  
+  app_worker_message_subscribe(worker_message_handler);
   
   ui_update_weather();
   ui_update_date();

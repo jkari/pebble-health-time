@@ -31,15 +31,13 @@
         "resources": {
             "media": [
                 {
-                    "file": "images/steps-small.png",
-                    "name": "IMAGE_STEPS",
-                    "targetPlatforms": null,
+                    "file": "images/thunder-light.png",
+                    "name": "IMAGE_THUNDER_LIGHT",
                     "type": "bitmap"
                 },
                 {
-                    "file": "images/achievement-small.png",
-                    "name": "IMAGE_ACHIEVEMENT",
-                    "targetPlatforms": null,
+                    "file": "images/thunder-heavy.png",
+                    "name": "IMAGE_THUNDER_HEAVY",
                     "type": "bitmap"
                 },
                 {
@@ -49,31 +47,9 @@
                     "type": "bitmap"
                 },
                 {
-                    "file": "images/moon-small.png",
-                    "name": "IMAGE_MOON",
+                    "file": "images/steps-small.png",
+                    "name": "IMAGE_STEPS",
                     "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
-                    "file": "fonts/E4 2017.ttf",
-                    "name": "FONT_8",
-                    "targetPlatforms": null,
-                    "type": "font"
-                },
-                {
-                    "file": "fonts/E4 2017.ttf",
-                    "name": "FONT_16",
-                    "targetPlatforms": null,
-                    "type": "font"
-                },
-                {
-                    "file": "images/thunder-light.png",
-                    "name": "IMAGE_THUNDER_LIGHT",
-                    "type": "bitmap"
-                },
-                {
-                    "file": "images/thunder-heavy.png",
-                    "name": "IMAGE_THUNDER_HEAVY",
                     "type": "bitmap"
                 },
                 {
@@ -99,6 +75,12 @@
                 {
                     "file": "images/rain-heavy.png",
                     "name": "IMAGE_RAIN_HEAVY",
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/moon-small.png",
+                    "name": "IMAGE_MOON",
+                    "targetPlatforms": null,
                     "type": "bitmap"
                 },
                 {
@@ -130,13 +112,30 @@
                     "file": "images/bt.png",
                     "name": "IMAGE_BLUETOOTH",
                     "type": "bitmap"
+                },
+                {
+                    "file": "images/achievement-small.png",
+                    "name": "IMAGE_ACHIEVEMENT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "fonts/E4 2017.ttf",
+                    "name": "FONT_16",
+                    "targetPlatforms": null,
+                    "type": "font"
+                },
+                {
+                    "file": "fonts/E4 2017.ttf",
+                    "name": "FONT_8",
+                    "targetPlatforms": null,
+                    "type": "font"
                 }
             ]
         },
         "sdkVersion": "3",
         "targetPlatforms": [
-            "basalt",
-            "chalk"
+            "basalt"
         ],
         "uuid": "0cf30620-902e-4aa9-ae97-960b74290044",
         "watchapp": {

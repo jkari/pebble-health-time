@@ -15,10 +15,12 @@ static void tick_handler(struct tm *tick_timer, TimeUnits units_changed) {
 }
 
 static void worker_init() {
+  health_init();
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 }
 
 static void worker_deinit() {
+  health_deinit();
   tick_timer_service_unsubscribe();
 }
 
