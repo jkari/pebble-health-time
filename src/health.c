@@ -2,6 +2,8 @@
 #include "health.h"
 #include "config.h"
 
+//#define DEBUG 1
+
 int _get_avg_steps_between(time_t start, time_t end) {
   const HealthMetric metric = HealthMetricStepCount;
   const HealthServiceTimeScope scope = HealthServiceTimeScopeDaily;
@@ -32,7 +34,9 @@ int health_get_current_steps_per_minute() {
 }
 
 int health_get_sleep_value(uint8_t *data, int key) {
-  //APP_LOG(APP_LOG_LEVEL_INFO, "Get value at %d", key);
+#ifdef DEBUG
+  return (key / 5) % 3;
+#endif
   int index = key / 2;
   
   if (key % 2 == 0) {
@@ -43,6 +47,9 @@ int health_get_sleep_value(uint8_t *data, int key) {
 }
 
 int health_get_activity_value(uint8_t *data, int key) {
+#ifdef DEBUG
+  return (key / 3) % 255;
+#endif
   return data[key];
 }
 
@@ -77,11 +84,17 @@ int health_get_index_for_time(time_t time, bool suppressTo12Hours) {
 }
 
 float health_get_current_score() {
+#ifdef DEBUG
+  return 0.6f;
+#endif
   float average = _get_daily_avg_steps();
   return average > 0 ? (float)_get_current_steps() / average : 0;
 }
 
 float health_get_avg_score() {
+#ifdef DEBUG
+  return 0.7f;
+#endif
   const time_t start = time_start_of_today();
   const time_t end = time(NULL);
   

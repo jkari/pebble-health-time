@@ -5,7 +5,7 @@
 #include "communication.h"
 #include "ui.h"
 
-// #define DEBUG 1
+#define DEBUG 1
 
 static Window *s_main_window;
 

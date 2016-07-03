@@ -118,7 +118,7 @@ static void _draw_pin(GContext* ctx, GPoint offset, float angle, GBitmap* bitmap
   
   graphics_draw_line(
     ctx,
-    (GPoint)ANGLE_POINT(offset.x, offset.y, angle, ARC_RADIUS_MARKER),
+    (GPoint)ANGLE_POINT(offset.x, offset.y, angle, MARKER_SIZE_X),
     (GPoint)ANGLE_POINT(offset.x, offset.y, angle, PIN_ARC_RADIUS + PIN_RADIUS)
   );
 }
@@ -168,7 +168,7 @@ static void _draw_activity_cycle(GContext *ctx, GPoint offset) {
     if (activity_level != current_activity_level || i == current_index + 12 * 12 - 1) {
       if (current_activity_level > 0) {
         draw_arc(
-          ctx, offset, ARC_RADIUS_ACTIVITY, WIDTH_CIRCLE,
+          ctx, offset, GSize(ACTIVITY_SIZE_X, ACTIVITY_SIZE_Y), WIDTH_CIRCLE,
           current_level_start_index * (360.f / (12.f * 12.f)),
           i * (360.f / (12.f * 12.f)) + 0.1f,
           _get_activity_color(current_activity_level)
@@ -195,7 +195,7 @@ void _draw_sleep_cycle(GContext *ctx, GPoint offset) {
     if (sleep_level != current_sleep_level || i == current_index + 24 * 12 - 1) {
       if (current_sleep_level != 0) {
         draw_arc(
-          ctx, offset, ARC_RADIUS_SLEEP, WIDTH_CIRCLE,
+          ctx, offset, GSize(SLEEP_SIZE_X, SLEEP_SIZE_Y), WIDTH_CIRCLE,
           current_level_start_index * (360.f / (12.f * 12.f)),
           i * (360.f / (12.f * 12.f)) + 0.1f,
           current_sleep_level == 1 ? GColorPictonBlue : GColorDukeBlue
@@ -231,11 +231,11 @@ static void _draw_current_activity(GContext* ctx, GPoint offset) {
   draw_arc(
     ctx,
     GPoint(offset.x + STEPS_X, offset.y + STEPS_Y + STEPS_HEIGHT/2),
-    STEPS_CIRCLE_RADIUS,
+    GSize(STEPS_SIZE_X, STEPS_SIZE_Y),
     STEPS_CIRCLE_WIDTH,
     0,
     (current_activity / 255.f) * 360.f,
-    GColorRed
+    _get_activity_color(_get_activity_level(current_activity))
   );
 }
 
@@ -258,15 +258,13 @@ static void _draw_activity_progress(GContext* ctx, GPoint offset) {
   float current_score = health_get_current_score();
   float avg_score = health_get_avg_score();
   
-  APP_LOG(APP_LOG_LEVEL_INFO, "Current score %d, avg %d", (int)(current_score * 100.f), (int)(avg_score * 100.f));
-  
   float min_progress = current_score > avg_score ? avg_score : current_score;
   float max_progress = current_score > avg_score ? current_score : avg_score;
   
   draw_arc(
     ctx,
     offset,
-    ACTIVITY_PROGRESS_RADIUS,
+    GSize(ACTIVITY_PROGRESS_SIZE_X, ACTIVITY_PROGRESS_SIZE_Y),
     ACTIVITY_PROGRESS_WIDTH,
     0,
     min_progress * 360.f,
@@ -278,7 +276,7 @@ static void _draw_activity_progress(GContext* ctx, GPoint offset) {
   draw_arc(
     ctx,
     offset,
-    ACTIVITY_PROGRESS_RADIUS,
+    GSize(ACTIVITY_PROGRESS_SIZE_X, ACTIVITY_PROGRESS_SIZE_Y),
     ACTIVITY_PROGRESS_WIDTH,
     min_progress * 360.f,
     max_progress * 360.f,
@@ -293,18 +291,10 @@ static void _draw_markers(GContext *ctx, GPoint offset) {
 
   for (int i = 0; i < 60; i++) {
     int length = i % 5 == 0 ? 6 : 3;
-    int angle = TRIG_MAX_ANGLE * (i / 60.0f);
-    GPoint from = {
-      .x = (sin_lookup(angle) * ARC_RADIUS_MARKER / TRIG_MAX_RATIO) + offset.x,
-      .y = (-cos_lookup(angle) * ARC_RADIUS_MARKER / TRIG_MAX_RATIO) + offset.y,
-    };
-    GPoint to = {
-      .x = (sin_lookup(angle) * (ARC_RADIUS_MARKER - length) / TRIG_MAX_RATIO) + offset.x,
-      .y = (-cos_lookup(angle) * (ARC_RADIUS_MARKER - length) / TRIG_MAX_RATIO) + offset.y,
-    };
+    GPoint from = draw_get_arc_point(360.f * (i / 60.f), GSize(MARKER_SIZE_X, MARKER_SIZE_Y), offset);
+    GPoint to = draw_get_arc_point(360.f * (i / 60.f), GSize(MARKER_SIZE_X - length, MARKER_SIZE_Y - length), offset);
     
     graphics_context_set_stroke_width(ctx, i % 5 == 0 ? 3 : 1);
-    
     graphics_draw_line(ctx, from, to);
   }
 }

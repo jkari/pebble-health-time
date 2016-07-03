@@ -135,7 +135,8 @@
         },
         "sdkVersion": "3",
         "targetPlatforms": [
-            "basalt"
+            "basalt",
+            "chalk"
         ],
         "uuid": "0cf30620-902e-4aa9-ae97-960b74290044",
         "watchapp": {

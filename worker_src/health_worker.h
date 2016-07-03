@@ -3,7 +3,7 @@
 #define DATA_ARRAY_SIZE 144
 #define ACTIVITY_BLOCK_MINUTES 5
 #define FAST_POLL_MIN_SPM 20
-#define UPDATE_ACTIVITY_MS 10000
+#define MOVEMENT_UPDATE_MIN_SECONDS 10
 
 #define MESSAGE_ID_WORKER_INSTANT_UPDATE 100
 
@@ -20,3 +20,6 @@ void health_update_minute();
 void health_update_half_hour();
 void health_init();
 void health_deinit();
+void health_movement_update();
+
+void _save_current_activity();

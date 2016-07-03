@@ -12,21 +12,6 @@ void _load_activity_data() {
       _activity_data[i] = 0;
     }
   }
-  
-#ifdef DEBUG
-  data[16] = 10;
-  data[17] = 20;
-  data[18] = 50;
-  data[19] = 100;
-  data[20] = 70;
-  data[21] = 30;
-  data[40] = 10;
-  data[41] = 70;
-  data[42] = 150;
-  data[43] = 255;
-  data[44] = 200;
-  data[45] = 150;
-#endif
 }
 
 void _load_sleep_data() {
@@ -37,17 +22,6 @@ void _load_sleep_data() {
       _sleep_data[i] = 0;
     }
   }
-  
-#ifdef DEBUG
-  data[12] = 1;
-  data[13] = 1;
-  data[14] = 2;
-  data[15] = 1;
-  data[16] = 2;
-  data[17] = 2;
-  data[18] = 2;
-  data[19] = 1;
-#endif
 }
 
 static int _get_today_total_activity() {
@@ -107,9 +81,22 @@ static void _set_activity(int index, int value) {
   _activity_data[index] = (uint8_t)value;
 }
 
-void _save_current_activity(void *data) {
+
+static void _health_event_handler(HealthEventType event, void *context) {
+  if (event == HealthEventMovementUpdate) {
+    _save_current_activity();
+  }
+}
+
+void _save_current_activity() {
   int interval = time(NULL) - persist_read_int(PERSIST_HEALTH_LAST_ACTIVITY_TIME);
  
+  if (interval < MOVEMENT_UPDATE_MIN_SECONDS) {
+    return;
+  }
+  
+  health_service_events_unsubscribe();
+  
   int new_steps = _get_today_total_activity() - persist_read_int(PERSIST_HEALTH_LAST_ACTIVITY_VALUE);
   int steps_per_minute = new_steps / ((float)interval / 60.f);
 
@@ -118,9 +105,9 @@ void _save_current_activity(void *data) {
   persist_write_int(PERSIST_HEALTH_LAST_ACTIVITY_SPM, steps_per_minute);
   
   if (_get_current_steps_per_minute() >= FAST_POLL_MIN_SPM) {
+    health_service_events_subscribe(_health_event_handler, NULL);
     AppWorkerMessage msg_data;
     app_worker_send_message(MESSAGE_ID_WORKER_INSTANT_UPDATE, &msg_data);
-    app_timer_register(UPDATE_ACTIVITY_MS, _save_current_activity, NULL);
   }
 }
 
@@ -218,7 +205,7 @@ void health_update_minute() {
     _save_health_block_activity(current_time, total_activity);
   }
   
-  _save_current_activity(NULL);
+  _save_current_activity();
 
   if (_get_current_score() >= 1.f && !_is_activity_goal_achieved()) {
     _set_timeline_activity_achieved();
@@ -227,7 +214,16 @@ void health_update_minute() {
 
 void health_update_half_hour() {
   health_service_activities_iterate(
-    HealthActivitySleep | HealthActivityRestfulSleep,
+    HealthActivitySleep,
+    time(NULL) - 3600,
+    time(NULL),
+    HealthIterationDirectionFuture,
+    _callback_sleep_data,
+    (void*)NULL
+  );
+
+  health_service_activities_iterate(
+    HealthActivityRestfulSleep,
     time(NULL) - 3600,
     time(NULL),
     HealthIterationDirectionFuture,
