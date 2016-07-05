@@ -2,7 +2,7 @@
 #include "health.h"
 #include "config.h"
 
-//#define DEBUG 1
+#define DEBUG 1
 
 int _get_avg_steps_between(time_t start, time_t end) {
   const HealthMetric metric = HealthMetricStepCount;

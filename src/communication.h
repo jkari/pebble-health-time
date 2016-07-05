@@ -5,5 +5,6 @@
 #define MESSAGE_TYPE_CONFIG 3
 
 void communication_init();
+void communication_deinit();
 void communication_request_weather();
 void communication_ready();

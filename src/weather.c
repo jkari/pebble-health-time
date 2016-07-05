@@ -48,10 +48,10 @@ void weather_update(void) {
 }
 
 void weather_received_callback(DictionaryIterator* iterator) {
-  Tuple *temperature_tuple = dict_find(iterator, KEY_TEMPERATURE);
-  Tuple *conditions_tuple = dict_find(iterator, KEY_CONDITIONS);
-  Tuple *sunrise_tuple = dict_find(iterator, KEY_SUNRISE);
-  Tuple *sunset_tuple = dict_find(iterator, KEY_SUNSET);
+  Tuple *temperature_tuple = dict_find(iterator, MESSAGE_KEY_TEMPERATURE);
+  Tuple *conditions_tuple = dict_find(iterator, MESSAGE_KEY_CONDITIONS);
+  Tuple *sunrise_tuple = dict_find(iterator, MESSAGE_KEY_SUNRISE);
+  Tuple *sunset_tuple = dict_find(iterator, MESSAGE_KEY_SUNSET);
  
   if (temperature_tuple && conditions_tuple && sunrise_tuple && sunset_tuple) {
     persist_write_int(PERSIST_KEY_TEMPERATURE, (int)temperature_tuple->value->int32);

@@ -1,6 +1,8 @@
 {
     "author": "Jussi Kari",
-    "dependencies": {},
+    "dependencies": {
+        "pebble-events": "^1.0.2"
+    },
     "keywords": [],
     "name": "health-time",
     "pebble": {
@@ -11,22 +13,34 @@
         ],
         "displayName": "Health Time",
         "enableMultiJS": true,
-        "messageKeys": {
-            "KEY_ACTIVITY_SENSITIVITY": 13,
-            "KEY_COLOR_ACTIVITY": 12,
-            "KEY_COLOR_BG": 5,
-            "KEY_COLOR_DARK": 9,
-            "KEY_COLOR_HOUR": 11,
-            "KEY_COLOR_LIGHT": 8,
-            "KEY_COLOR_MINUTE": 10,
-            "KEY_COLOR_TEXT": 6,
-            "KEY_CONDITIONS": 1,
-            "KEY_MESSAGE_TYPE": 7,
-            "KEY_SUNRISE": 2,
-            "KEY_SUNSET": 3,
-            "KEY_TEMPERATURE": 0,
-            "KEY_USE_CELCIUS": 4
-        },
+        "messageKeys": [
+            "TEMPERATURE",
+            "CONDITIONS",
+            "SUNRISE",
+            "SUNSET",
+            "USE_CELCIUS",
+            "COLOR_BG",
+            "COLOR_TEXT",
+            "MESSAGE_TYPE",
+            "COLOR_LIGHT",
+            "COLOR_DARK",
+            "COLOR_MINUTE",
+            "COLOR_HOUR",
+            "COLOR_ACTIVITY",
+            "ACTIVITY_SENSITIVITY",
+            "KIEZELPAY_APP_ID",
+            "KIEZELPAY_DEVICE_TOKEN",
+            "KIEZELPAY_INTERNET_FAIL",
+            "KIEZELPAY_PURCHASE_CODE",
+            "KIEZELPAY_PURCHASE_STATUS",
+            "KIEZELPAY_RANDOM",
+            "KIEZELPAY_READY",
+            "KIEZELPAY_STATUS_CHECK",
+            "KIEZELPAY_STATUS_CHECKSUM",
+            "KIEZELPAY_STATUS_RESULT",
+            "KIEZELPAY_STATUS_TRIAL_DURATION",
+            "KIEZELPAY_STATUS_VALIDITY_PERIOD"
+        ],
         "projectType": "native",
         "resources": {
             "media": [
@@ -121,13 +135,13 @@
                 },
                 {
                     "file": "fonts/E4 2017.ttf",
-                    "name": "FONT_16",
+                    "name": "FONT_8",
                     "targetPlatforms": null,
                     "type": "font"
                 },
                 {
                     "file": "fonts/E4 2017.ttf",
-                    "name": "FONT_8",
+                    "name": "FONT_16",
                     "targetPlatforms": null,
                     "type": "font"
                 }
@@ -138,7 +152,7 @@
             "basalt",
             "chalk"
         ],
-        "uuid": "0cf30620-902e-4aa9-ae97-960b74290044",
+        "uuid": "6357288a-8134-454d-b535-5b2f56266461",
         "watchapp": {
             "watchface": true
         }

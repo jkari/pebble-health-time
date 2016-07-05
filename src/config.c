@@ -24,15 +24,15 @@ static void _update_settings(int use_celcius, int color_bg, int color_text, int 
 
 
 void config_received_callback(DictionaryIterator* iterator) {
-  Tuple *use_celcius = dict_find(iterator, KEY_USE_CELCIUS);
-  Tuple *color_bg = dict_find(iterator, KEY_COLOR_BG);
-  Tuple *color_text = dict_find(iterator, KEY_COLOR_TEXT);
-  Tuple *color_light = dict_find(iterator, KEY_COLOR_LIGHT);
-  Tuple *color_dark = dict_find(iterator, KEY_COLOR_DARK);
-  Tuple *color_minute = dict_find(iterator, KEY_COLOR_MINUTE);
-  Tuple *color_hour = dict_find(iterator, KEY_COLOR_HOUR);
-  Tuple *color_activity = dict_find(iterator, KEY_COLOR_ACTIVITY);
-  Tuple *activity_sensitivity = dict_find(iterator, KEY_ACTIVITY_SENSITIVITY);
+  Tuple *use_celcius = dict_find(iterator, MESSAGE_KEY_USE_CELCIUS);
+  Tuple *color_bg = dict_find(iterator, MESSAGE_KEY_COLOR_BG);
+  Tuple *color_text = dict_find(iterator, MESSAGE_KEY_COLOR_TEXT);
+  Tuple *color_light = dict_find(iterator, MESSAGE_KEY_COLOR_LIGHT);
+  Tuple *color_dark = dict_find(iterator, MESSAGE_KEY_COLOR_DARK);
+  Tuple *color_minute = dict_find(iterator, MESSAGE_KEY_COLOR_MINUTE);
+  Tuple *color_hour = dict_find(iterator, MESSAGE_KEY_COLOR_HOUR);
+  Tuple *color_activity = dict_find(iterator, MESSAGE_KEY_COLOR_ACTIVITY);
+  Tuple *activity_sensitivity = dict_find(iterator, MESSAGE_KEY_ACTIVITY_SENSITIVITY);
   
   if (use_celcius && color_bg) {
     _update_settings(

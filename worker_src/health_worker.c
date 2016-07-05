@@ -167,11 +167,11 @@ bool _is_activity_goal_achieved() {
 }
 
 bool _callback_sleep_data(HealthActivity activity, time_t time_start, time_t time_end, void *context) {
-    int iterations = (time_end - time_start) / (60 * ACTIVITY_BLOCK_MINUTES);
+    int iterations = (time_end - time_start) / (60 * ACTIVITY_BLOCK_MINUTES) + 1;
     int start_index = _get_index_for_time(time_start, false);
     int sleep_type = (activity == HealthActivityRestfulSleep) ? 2 : 1;
 
-    for (int i = start_index; i < iterations; i++) {
+    for (int i = start_index; i < start_index + iterations; i++) {
         _set_sleep(i, sleep_type);
     }
 

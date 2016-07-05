@@ -76,8 +76,6 @@ void draw_arc(GContext* ctx, GPoint center, GSize size, int width, float angle_f
   int iterations = _get_amount_corners(angle_from, angle_to, size);
   int region = _get_region_from_angle(angle_from, size);
   
-  APP_LOG(APP_LOG_LEVEL_INFO, "Angle %d - %d, draw from %d, %d to %d, %d", (int)angle_from % 360, (int)angle_to % 360, from.x, from.y, to.x, to.y);
-  
   while (iterations >= 0) {
     if (iterations == 0) {
       next = to;
@@ -92,7 +90,6 @@ void draw_arc(GContext* ctx, GPoint center, GSize size, int width, float angle_f
     
     GPoint next_inner = _get_inner_point(next, width, region);
     
-    APP_LOG(APP_LOG_LEVEL_INFO, "Reg %d; Draw %d, %d - %d, %d", region, (int)current.x, (int)current.y, (int)next_inner.x, (int)next_inner.y);
     graphics_fill_rect(
       ctx,
       GRect(

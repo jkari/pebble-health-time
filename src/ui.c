@@ -345,6 +345,8 @@ static void _layer_canvas_update_callback(Layer *layer, GContext *ctx) {
   _draw_activity_cycle(ctx, offset);
   _draw_text_bg(ctx, offset);
   _draw_markers(ctx, offset);
+  
+  APP_LOG(APP_LOG_LEVEL_INFO, "Update canvas done");
 }
 
 static void _layer_battery_update_callback(Layer *layer, GContext *ctx) {  

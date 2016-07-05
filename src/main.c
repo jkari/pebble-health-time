@@ -1,4 +1,6 @@
 #include <pebble.h>
+#include <pebble-events/pebble-events.h>
+#include "kiezelpay.h"
 #include "weather.h"
 #include "health.h"
 #include "config.h"
@@ -8,7 +10,11 @@
 #define DEBUG 1
 
 static Window *s_main_window;
-
+static EventHandle handle_tick_timer;
+static EventHandle handle_battery_state;
+static EventHandle handle_connection;
+static EventHandle handle_app_focus;
+  
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Tick tock");
   
@@ -56,19 +62,21 @@ static void _focused_handler(bool in_focus) {
 static void main_window_load(Window *window) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Window load");
   
+  kiezelpay_init();
+  
   communication_init();
 
   ui_load(window);
   
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
-  battery_state_service_subscribe(battery_handler);
+  handle_tick_timer = events_tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  handle_battery_state = events_battery_state_service_subscribe(battery_handler);
   
   ui_bluetooth_set_available(connection_service_peek_pebble_app_connection());
-  connection_service_subscribe((ConnectionHandlers) {
+  handle_connection = events_connection_service_subscribe((ConnectionHandlers) {
     .pebble_app_connection_handler = _bluetooth_handler
   });
   
-  app_focus_service_subscribe_handlers((AppFocusHandlers){
+  handle_app_focus = events_app_focus_service_subscribe_handlers((AppFocusHandlers){
     .did_focus = _focused_handler,
     .will_focus = _focusing_handler
   });
@@ -87,10 +95,14 @@ static void main_window_load(Window *window) {
 static void main_window_unload(Window *window) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Window unload");
   
-  connection_service_unsubscribe();
-  battery_state_service_unsubscribe();
-  tick_timer_service_unsubscribe();
-  app_focus_service_unsubscribe();
+  kiezelpay_deinit();
+  
+  communication_deinit();
+  
+  events_connection_service_unsubscribe(handle_connection);
+  events_battery_state_service_unsubscribe(handle_battery_state);
+  events_tick_timer_service_unsubscribe(handle_tick_timer);
+  events_app_focus_service_unsubscribe(handle_app_focus);
   
   ui_unload();
 }
