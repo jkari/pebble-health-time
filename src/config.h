@@ -1,33 +1,22 @@
 #pragma once
 
-//#define KEY_TEMPERATURE 0
-//#define KEY_CONDITIONS 1
-//#define KEY_SUNRISE 2
-//#define KEY_SUNSET 3
-//#define KEY_USE_CELCIUS 4
-//#define KEY_COLOR_BG 5
-//#define KEY_COLOR_TEXT 6
-//#define KEY_MESSAGE_TYPE 7
-//#define KEY_COLOR_LIGHT 8
-//#define KEY_COLOR_DARK 9
-//#define KEY_COLOR_MINUTE 10
-//#define KEY_COLOR_HOUR 11
-//#define KEY_COLOR_ACTIVITY 12
-//#define KEY_ACTIVITY_SENSITIVITY 13
 
-#define PERSIST_KEY_TEMPERATURE 1
-#define PERSIST_KEY_CONDITION 2
-#define PERSIST_KEY_SUNRISE 3
-#define PERSIST_KEY_SUNSET 4
-#define PERSIST_KEY_USE_CELCIUS 5
-#define PERSIST_KEY_COLOR_BG 6
-#define PERSIST_KEY_COLOR_TEXT 7
-#define PERSIST_KEY_COLOR_LIGHT 11
-#define PERSIST_KEY_COLOR_DARK 12
-#define PERSIST_KEY_COLOR_MINUTE 13
-#define PERSIST_KEY_COLOR_HOUR 14
-#define PERSIST_KEY_COLOR_ACTIVITY 15
-#define PERSIST_KEY_ACTIVITY_SENSITIVITY 16
+#define THEME_LIGHT 1
+#define THEME_DARK 2
+
+#define BATTERY_HIGH_MIN 60
+#define BATTERY_LOW_MAX 20
+
+#define DEBUG 1
+#define DEMO 1
+//#define DEMO_COMPLETE 1
+//#define DEMO_INCOMPLETE 1
+
+#ifdef DEBUG
+#define LOG(...) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#else
+#define LOG(...)
+#endif
 
 void config_received_callback(DictionaryIterator* iterator);
 GColor config_get_color_bg();
@@ -35,6 +24,21 @@ GColor config_get_color_front();
 GColor config_get_color_marker();
 GColor config_get_color_hour();
 GColor config_get_color_minute();
-GColor config_get_color_activity_high();
 GColor config_get_color_text();
+GColor config_get_color_text2();
+GColor config_get_color_sleep(int level);
+GColor config_get_color_activity(int level);
+GColor config_get_color_current_activity_neutral();
+GColor config_get_color_current_activity_minus();
+GColor config_get_color_current_activity_plus();
+GColor config_get_color_weekday_bg();
+GColor config_get_color_battery(int percentage);
 bool config_get_use_celcius();
+
+bool config_show_sleep();
+bool config_show_activity();
+bool config_show_activity_progress();
+bool config_show_activity_current();
+bool config_show_weather();
+bool config_show_pins_sun();
+bool config_show_pins_achievement();

@@ -9,46 +9,50 @@ static EventHandle handle_app_message_inbox_dropped;
 static EventHandle handle_app_message_outbox_sent;
 static EventHandle handle_app_message_outbox_failed;
 
-static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
+MessageType _get_message_type(DictionaryIterator* iterator) {
+  if (dict_find(iterator, MESSAGE_KEY_USE_CELCIUS) != NULL) {
+    return MSG_TYPE_CONFIG;
+  } else if (dict_find(iterator, MESSAGE_KEY_TEMPERATURE)) {
+    return MSG_TYPE_WEATHER;
+  }
+  
   Tuple *message_type = dict_find(iterator, MESSAGE_KEY_MESSAGE_TYPE);
+  
+  if (message_type != NULL) {
+    return message_type->value->int32;
+  }
+  
+  return MSG_TYPE_UNKNOWN;
+}
 
-  APP_LOG(APP_LOG_LEVEL_INFO, "Message received");
+static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
+  LOG("%s", __func__);
   
-  if (message_type) {
-    return;
+  switch (_get_message_type(iterator)) {
+    case MSG_TYPE_CONFIG: config_received_callback(iterator); break;
+    case MSG_TYPE_WEATHER: weather_received_callback(iterator); break;
+    case MSG_TYPE_READY: communication_ready(); break;
+    case MSG_TYPE_FORCE_UPDATE: break;
+    case MSG_TYPE_UNKNOWN: LOG("Received unknown message"); break;
   }
-  
-  switch (message_type->value->int32) {
-    case MESSAGE_TYPE_READY:
-      communication_ready();
-      break;
-    case MESSAGE_TYPE_WEATHER:
-      weather_received_callback(iterator);
-      break;
-    case MESSAGE_TYPE_CONFIG:
-      config_received_callback(iterator);
-      break;
-  }
-  
-  APP_LOG(APP_LOG_LEVEL_INFO, "Message %d handled", (int)message_type->value->int32);
 }
 
 static void inbox_dropped_callback(AppMessageResult reason, void *context) {
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
+  LOG("Message dropped!");
 }
 
 static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
+  LOG("Outbox send failed!");
 }
 
 static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+  LOG("Outbox send success!");
 }
 
 void communication_init() {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Initializing communication");
-  //events_app_message_request_inbox_size(1024);
-  //events_app_message_request_outbox_size(128);
+  LOG("Initializing communication");
+  events_app_message_request_inbox_size(1024);
+  events_app_message_request_outbox_size(128);
   
   handle_app_message_inbox_received = events_app_message_register_inbox_received(inbox_received_callback, NULL);
   handle_app_message_inbox_dropped = events_app_message_register_inbox_dropped(inbox_dropped_callback, NULL);
@@ -67,7 +71,7 @@ void communication_deinit() {
 
 void communication_request_weather() {
   int use_celcius = config_get_use_celcius() ? 1 : 0;
-  APP_LOG(APP_LOG_LEVEL_INFO, "Sending weather request");
+  LOG("Sending weather request");
   
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);

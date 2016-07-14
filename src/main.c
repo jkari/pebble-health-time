@@ -16,7 +16,7 @@ static EventHandle handle_connection;
 static EventHandle handle_app_focus;
   
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Tick tock");
+  LOG("%s", __func__);
   
   if (tick_time->tm_min % 30 == 0) {
     weather_update();
@@ -60,9 +60,9 @@ static void _focused_handler(bool in_focus) {
 }
 
 static void main_window_load(Window *window) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Window load");
+  LOG("%s", __func__);
   
-  kiezelpay_init();
+  //kiezelpay_init();
   
   communication_init();
 
@@ -89,11 +89,11 @@ static void main_window_load(Window *window) {
   
   ui_update_weather();
   ui_update_date();
-  ui_update_colors();
+  ui_update_config();
 }
 
 static void main_window_unload(Window *window) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Window unload");
+  LOG("%s", __func__);
   
   kiezelpay_deinit();
   

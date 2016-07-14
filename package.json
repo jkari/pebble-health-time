@@ -1,6 +1,7 @@
 {
     "author": "Jussi Kari",
     "dependencies": {
+        "pebble-clay": "^1.0.2",
         "pebble-events": "^1.0.2"
     },
     "keywords": [],
@@ -18,16 +19,6 @@
             "CONDITIONS",
             "SUNRISE",
             "SUNSET",
-            "USE_CELCIUS",
-            "COLOR_BG",
-            "COLOR_TEXT",
-            "MESSAGE_TYPE",
-            "COLOR_LIGHT",
-            "COLOR_DARK",
-            "COLOR_MINUTE",
-            "COLOR_HOUR",
-            "COLOR_ACTIVITY",
-            "ACTIVITY_SENSITIVITY",
             "KIEZELPAY_APP_ID",
             "KIEZELPAY_DEVICE_TOKEN",
             "KIEZELPAY_INTERNET_FAIL",
@@ -39,11 +30,27 @@
             "KIEZELPAY_STATUS_CHECKSUM",
             "KIEZELPAY_STATUS_RESULT",
             "KIEZELPAY_STATUS_TRIAL_DURATION",
-            "KIEZELPAY_STATUS_VALIDITY_PERIOD"
+            "KIEZELPAY_STATUS_VALIDITY_PERIOD",
+            "MESSAGE_TYPE",
+            "SHOW_ACTIVITY_CURRENT",
+            "SHOW_ACTIVITY",
+            "SHOW_SLEEP",
+            "SHOW_ACTIVITY_PROGRESS",
+            "SHOW_PINS_SUN",
+            "SHOW_PINS_ACHIEVEMENT",
+            "SHOW_WEATHER",
+            "THEME",
+            "USE_CELCIUS"
         ],
         "projectType": "native",
         "resources": {
             "media": [
+                {
+                    "file": "images/trophy.png",
+                    "name": "IMAGE_ACHIEVEMENT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
                 {
                     "file": "images/thunder-light.png",
                     "name": "IMAGE_THUNDER_LIGHT",
@@ -128,12 +135,6 @@
                     "type": "bitmap"
                 },
                 {
-                    "file": "images/achievement-small.png",
-                    "name": "IMAGE_ACHIEVEMENT",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
                     "file": "fonts/E4 2017.ttf",
                     "name": "FONT_8",
                     "targetPlatforms": null,
@@ -149,10 +150,11 @@
         },
         "sdkVersion": "3",
         "targetPlatforms": [
+            "aplite",
             "basalt",
             "chalk"
         ],
-        "uuid": "6357288a-8134-454d-b535-5b2f56266461",
+        "uuid": "19c397c0-0c9b-4864-acc5-e179be0e778d",
         "watchapp": {
             "watchface": true
         }

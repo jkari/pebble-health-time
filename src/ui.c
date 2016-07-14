@@ -53,7 +53,9 @@ static void _ui_reload_bitmap(GBitmap **image, uint32_t resource_id, GColor colo
   
   *image = gbitmap_create_with_resource(resource_id);
   
+//#ifdef PBL_COLOR
   replace_gbitmap_color(GColorWhite, color, *image, NULL);
+//#endif
 }
 
 static void _ui_set_weather_icon() {
@@ -66,15 +68,15 @@ static void _ui_set_weather_icon() {
 }
 
 static void _generate_bitmaps() {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Generating bitmaps");
+  LOG("Generating bitmaps");
   _ui_set_weather_icon();
   
-  _ui_reload_bitmap(&s_bitmap_steps1, RESOURCE_ID_IMAGE_STEPS, GColorBlack);
-  _ui_reload_bitmap(&s_bitmap_steps2, RESOURCE_ID_IMAGE_STEPS, GColorLightGray);
+  _ui_reload_bitmap(&s_bitmap_steps1, RESOURCE_ID_IMAGE_STEPS, config_get_color_text());
+  _ui_reload_bitmap(&s_bitmap_steps2, RESOURCE_ID_IMAGE_STEPS, config_get_color_text2());
   
-  GColor color = GColorBlack;
-  _ui_reload_bitmap(&s_bitmap_sunrise, RESOURCE_ID_IMAGE_SUN, color);
-  _ui_reload_bitmap(&s_bitmap_sunset, RESOURCE_ID_IMAGE_MOON, color);
+  _ui_reload_bitmap(&s_bitmap_achievement, RESOURCE_ID_IMAGE_ACHIEVEMENT, config_get_color_text());
+  _ui_reload_bitmap(&s_bitmap_sunrise, RESOURCE_ID_IMAGE_SUN, config_get_color_text());
+  _ui_reload_bitmap(&s_bitmap_sunset, RESOURCE_ID_IMAGE_MOON, config_get_color_text());
 }
 
 static void _charge_animation_callback(void *data) {
@@ -108,38 +110,33 @@ static void _draw_weather_bg(GContext *ctx, GPoint offset) {
 }
 
 static void _draw_pin(GContext* ctx, GPoint offset, float angle, GBitmap* bitmap) {
-  GPoint icon_point = ANGLE_POINT(offset.x, offset.y, angle, PIN_ARC_RADIUS);
+  int size_x = DATA_SIZE_X - 2 * PIN_RADIUS - (2 * DATA_WIDTH + 2 * DATA_SPACING)
+    * ((config_show_activity_progress() ? 1 : 0) + (config_show_sleep() ? 1 : 0) + (config_show_activity() ? 1 : 0));
+  int size_y = DATA_SIZE_Y - 2 * PIN_RADIUS - (2 * DATA_WIDTH + 2 * DATA_SPACING)
+    * ((config_show_activity_progress() ? 1 : 0) + (config_show_sleep() ? 1 : 0) + (config_show_activity() ? 1 : 0));
+  GPoint icon_point = draw_get_arc_point(angle, GSize(size_x, size_y), offset);
   
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(icon_point.x - PIN_ICON_WIDTH/2, icon_point.y - PIN_ICON_WIDTH/2, PIN_ICON_WIDTH, PIN_ICON_WIDTH));
   
-  graphics_context_set_stroke_color(ctx, GColorDarkGray);
+  graphics_context_set_stroke_color(ctx, config_get_color_weekday_bg());
   graphics_context_set_stroke_width(ctx, WIDTH_EVENT_POINTER);
   
-  graphics_draw_line(
-    ctx,
-    (GPoint)ANGLE_POINT(offset.x, offset.y, angle, MARKER_SIZE_X),
-    (GPoint)ANGLE_POINT(offset.x, offset.y, angle, PIN_ARC_RADIUS + PIN_RADIUS)
-  );
+  GPoint marker_point = draw_get_arc_point(angle, GSize(MARKER_SIZE_X, MARKER_SIZE_Y), offset);
+  GPoint pin_point = draw_get_arc_point(angle, GSize(size_x + 2 * PIN_RADIUS, size_y + 2 * PIN_RADIUS), offset);
+  
+  graphics_draw_line(ctx, marker_point, pin_point);
 }
 
-static void _draw_pins(GContext *ctx, GPoint offset) {
+static void _draw_pins_sun(GContext *ctx, GPoint offset) {
   _draw_pin(ctx, offset, _get_sunrise_ui_angle(offset), s_bitmap_sunrise);
   _draw_pin(ctx, offset, _get_sunset_ui_angle(offset), s_bitmap_sunset);
-  
+}
+
+static void _draw_pins_achievement(GContext *ctx, GPoint offset) {
   if (health_is_activity_goal_achieved()) {
     _draw_pin(ctx, offset, health_get_activity_goal_angle(), s_bitmap_achievement);
   } 
-}
-
-static GColor _get_activity_color(int level) {
-  if (level == 1) {
-    return GColorRajah;
-  } else if (level == 2) {
-    return GColorOrange;
-  }
-  
-  return GColorRed;
 }
 
 static int _get_activity_level(int activity) {
@@ -161,6 +158,12 @@ static void _draw_activity_cycle(GContext *ctx, GPoint offset) {
   int current_index = health_get_index_for_time(time(NULL), true);
   int current_level_start_index = current_index;
   int current_activity_level = _get_activity_level(health_get_activity_value(activity_data, current_index));
+  int size_x = DATA_SIZE_X 
+    - (config_show_sleep() ? (2 * DATA_WIDTH + 2 * DATA_SPACING) : 0)
+    - (config_show_activity_progress() ? (2 * DATA_WIDTH + 2 * DATA_SPACING) : 0);
+  int size_y = DATA_SIZE_Y 
+    - (config_show_sleep() ? (2 * DATA_WIDTH + 2 * DATA_SPACING) : 0)
+    - (config_show_activity_progress() ? (2 * DATA_WIDTH + 2 * DATA_SPACING) : 0);
     
   for (int i = current_index; i < current_index + 12 * 12; i++) {
     int activity_level = _get_activity_level(health_get_activity_value(activity_data, i % (12 * 12)));
@@ -168,10 +171,10 @@ static void _draw_activity_cycle(GContext *ctx, GPoint offset) {
     if (activity_level != current_activity_level || i == current_index + 12 * 12 - 1) {
       if (current_activity_level > 0) {
         draw_arc(
-          ctx, offset, GSize(ACTIVITY_SIZE_X, ACTIVITY_SIZE_Y), WIDTH_CIRCLE,
+          ctx, offset, GSize(size_x, size_y), DATA_WIDTH,
           current_level_start_index * (360.f / (12.f * 12.f)),
           i * (360.f / (12.f * 12.f)) + 0.1f,
-          _get_activity_color(current_activity_level)
+          config_get_color_activity(current_activity_level)
         );
       }
       
@@ -188,6 +191,8 @@ void _draw_sleep_cycle(GContext *ctx, GPoint offset) {
   int current_index = health_get_index_for_time(time(NULL), false);
   int current_level_start_index = current_index;
   int current_sleep_level = health_get_sleep_value(sleep_data, current_index);
+  int size_x = DATA_SIZE_X - (config_show_activity_progress() ? (2 * DATA_WIDTH + 2 * DATA_SPACING) : 0);
+  int size_y = DATA_SIZE_Y - (config_show_activity_progress() ? (2 * DATA_WIDTH + 2 * DATA_SPACING) : 0);
   
   for (int i = current_index; i < current_index + 24 * 12; i++) {
     int sleep_level = (int)health_get_sleep_value(sleep_data, i % (12 * 24));
@@ -195,10 +200,10 @@ void _draw_sleep_cycle(GContext *ctx, GPoint offset) {
     if (sleep_level != current_sleep_level || i == current_index + 24 * 12 - 1) {
       if (current_sleep_level != 0) {
         draw_arc(
-          ctx, offset, GSize(SLEEP_SIZE_X, SLEEP_SIZE_Y), WIDTH_CIRCLE,
+          ctx, offset, GSize(size_x, size_y), DATA_WIDTH,
           current_level_start_index * (360.f / (12.f * 12.f)),
           i * (360.f / (12.f * 12.f)) + 0.1f,
-          current_sleep_level == 1 ? GColorPictonBlue : GColorDukeBlue
+          config_get_color_sleep(current_sleep_level)
         );
       }
       
@@ -212,7 +217,7 @@ static void _activity_animation_callback(void *data) {
   layer_mark_dirty(s_layer_canvas);
 }
 
-static void _draw_current_activity(GContext* ctx, GPoint offset) {
+static void _draw_activity_current(GContext* ctx, GPoint offset) {
   int current_activity = health_get_current_steps_per_minute();
   
   if (current_activity < CURRENT_ACTIVITY_SHOW_LIMIT_SPM) {
@@ -235,16 +240,12 @@ static void _draw_current_activity(GContext* ctx, GPoint offset) {
     STEPS_CIRCLE_WIDTH,
     0,
     (current_activity / 255.f) * 360.f,
-    _get_activity_color(_get_activity_level(current_activity))
+    config_get_color_activity(_get_activity_level(current_activity))
   );
 }
 
 static void _draw_text_bg(GContext *ctx, GPoint offset) {
-  graphics_context_set_fill_color(ctx, GColorDarkGray);
-  
-  if (persist_exists(666)) {
-    graphics_context_set_fill_color(ctx, GColorYellow);
-  }
+  graphics_context_set_fill_color(ctx, config_get_color_weekday_bg());
   
   graphics_fill_rect(ctx, GRect(offset.x + WEEKDAY_X, offset.y + WEEKDAY_Y, WEEKDAY_BG_WIDTH, WEEKDAY_BG_HEIGHT), 0, GCornerNone);
 }
@@ -264,20 +265,20 @@ static void _draw_activity_progress(GContext* ctx, GPoint offset) {
   draw_arc(
     ctx,
     offset,
-    GSize(ACTIVITY_PROGRESS_SIZE_X, ACTIVITY_PROGRESS_SIZE_Y),
-    ACTIVITY_PROGRESS_WIDTH,
+    GSize(DATA_SIZE_X, DATA_SIZE_Y),
+    DATA_WIDTH,
     0,
     min_progress * 360.f,
-    GColorBlue
+    config_get_color_current_activity_neutral()
   );
   
-  GColor color = current_score > avg_score ? GColorGreen : GColorRed;
+  GColor color = current_score > avg_score ? config_get_color_current_activity_plus() : config_get_color_current_activity_minus();
   
   draw_arc(
     ctx,
     offset,
-    GSize(ACTIVITY_PROGRESS_SIZE_X, ACTIVITY_PROGRESS_SIZE_Y),
-    ACTIVITY_PROGRESS_WIDTH,
+    GSize(DATA_SIZE_X, DATA_SIZE_Y),
+    DATA_WIDTH,
     min_progress * 360.f,
     max_progress * 360.f,
     color
@@ -285,14 +286,16 @@ static void _draw_activity_progress(GContext* ctx, GPoint offset) {
 }
 
 static void _draw_markers(GContext *ctx, GPoint offset) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Draw markers");
+  LOG("%s", __func__);
   
   graphics_context_set_stroke_color(ctx, config_get_color_marker());
-
+    
   for (int i = 0; i < 60; i++) {
-    int length = i % 5 == 0 ? 6 : 3;
-    GPoint from = draw_get_arc_point(360.f * (i / 60.f), GSize(MARKER_SIZE_X, MARKER_SIZE_Y), offset);
-    GPoint to = draw_get_arc_point(360.f * (i / 60.f), GSize(MARKER_SIZE_X - length, MARKER_SIZE_Y - length), offset);
+    int length = i % 5 == 0 ? 10 : 6;
+    float angle = 360.f * (i / 60.f);
+    
+    GPoint from = draw_get_arc_point(angle, GSize(MARKER_SIZE_X, MARKER_SIZE_Y), offset);
+    GPoint to = draw_get_arc_point(angle, GSize(MARKER_SIZE_X - length, MARKER_SIZE_Y - length), offset);
     
     graphics_context_set_stroke_width(ctx, i % 5 == 0 ? 3 : 1);
     graphics_draw_line(ctx, from, to);
@@ -300,13 +303,18 @@ static void _draw_markers(GContext *ctx, GPoint offset) {
 }
 
 static void _draw_hands(GContext *ctx, GPoint offset) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Draw hands");
+  LOG("%s", __func__);
 
   time_t temp = time(NULL); 
   struct tm *tick_time = localtime(&temp);
   
   int32_t minute_angle = TRIG_MAX_ANGLE * tick_time->tm_min / 60;
   int32_t hour_angle = get_hour_angle();
+  
+#ifdef DEMO
+  hour_angle = TRIG_MAX_ANGLE * (7.9f / 12.f);
+  minute_angle = TRIG_MAX_ANGLE * (54.f / 60.f);
+#endif
   
   GPoint minute_to = {
     .x = (int16_t)(sin_lookup(minute_angle) * (int32_t)(HAND_LENGTH_MINUTE) / TRIG_MAX_RATIO) + offset.x,
@@ -326,27 +334,44 @@ static void _draw_hands(GContext *ctx, GPoint offset) {
 
 static void _layer_hands_update_callback(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
-  GPoint offset = GPoint(bounds.size.w / 2, bounds.size.h / 2);
   
   _draw_hands(ctx, GPoint(bounds.size.w / 2, bounds.size.h / 2));
 }
 
 static void _layer_canvas_update_callback(Layer *layer, GContext *ctx) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Update canvas");
+  LOG("%s", __func__);
 
   GRect bounds = layer_get_bounds(layer);
   GPoint offset = GPoint(bounds.size.w / 2, bounds.size.h / 2);
   
   _draw_bg(ctx, GPoint(bounds.size.w / 2, bounds.size.h / 2), bounds);
-  _draw_activity_progress(ctx, offset);
-  _draw_pins(ctx, offset);
-  _draw_current_activity(ctx, offset);
-  _draw_sleep_cycle(ctx, offset);
-  _draw_activity_cycle(ctx, offset);
+  
+  if (config_show_activity_progress()) {
+    _draw_activity_progress(ctx, offset);
+  }
+  
+  if (config_show_pins_sun()) {
+    _draw_pins_sun(ctx, offset);
+  }
+  
+  if (config_show_pins_achievement()) {
+    _draw_pins_achievement(ctx, offset);
+  }
+  
+  if (config_show_activity_current()) {
+    _draw_activity_current(ctx, offset);
+  }
+  
+  if (config_show_sleep()) {
+    _draw_sleep_cycle(ctx, offset);
+  }
+  
+  if (config_show_activity()) {
+    _draw_activity_cycle(ctx, offset);
+  }
+  
   _draw_text_bg(ctx, offset);
   _draw_markers(ctx, offset);
-  
-  APP_LOG(APP_LOG_LEVEL_INFO, "Update canvas done");
 }
 
 static void _layer_battery_update_callback(Layer *layer, GContext *ctx) {  
@@ -354,20 +379,14 @@ static void _layer_battery_update_callback(Layer *layer, GContext *ctx) {
   int current_charge = s_is_battery_animation_active ? s_battery_animation_percent : charge_state.charge_percent;
   
   for (int i = 0; i < current_charge; i+= 10) {
-    GColor color = GColorOrange;
-    
-    if (i <= BATTERY_LOW_MAX) {
-      color = GColorRed;  
-    } else if (i >= BATTERY_HIGH_MIN) {
-      color = GColorGreen;
-    }
-    
-    graphics_context_set_fill_color(ctx, color);
+    graphics_context_set_fill_color(ctx, config_get_color_battery(i));
     graphics_fill_rect(ctx, GRect(i/10 * (BATTERY_BLOCK_WIDTH + BATTERY_BLOCK_SPACING), 0, BATTERY_BLOCK_WIDTH, BATTERY_BLOCK_HEIGHT), 0, GCornerNone); 
   }
 }
 
 void ui_update_date(void) {
+  LOG("%s", __func__);
+
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
 
@@ -376,19 +395,16 @@ void ui_update_date(void) {
   
   static char** week_days;
   
-  if (true) {
-    //static char* fi_week_days[7] = {"su", "ma", "ti", "ke", "to", "pe", "la"};
-    static char* en_week_days[7] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-    week_days = en_week_days;
-  }
+  static char* en_week_days[7] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
+  week_days = en_week_days;
   
-  //static char s_weekday_buffer[4];
-  //strftime(s_weekday_buffer, sizeof(s_weekday_buffer), "%a", tick_time);
+#ifdef DEMO
+  strcpy(week_days[tick_time->tm_wday], "TUE");
+  strcpy(s_day_of_month_buffer, "12");
+#endif
   
   text_layer_set_text(s_layer_day_of_month, s_day_of_month_buffer);
   text_layer_set_text(s_layer_weekday, week_days[tick_time->tm_wday]);
-  
-  APP_LOG(APP_LOG_LEVEL_INFO, week_days[tick_time->tm_wday]);
 }
 
 void ui_load(Window *window) {
@@ -407,12 +423,12 @@ void ui_load(Window *window) {
   s_bitmap_steps2 = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEPS);
   s_bitmap_achievement = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACHIEVEMENT);
   
-  s_layer_day_of_month = text_layer_create(GRect(center.x + DATE_X, center.y + WEEKDAY_Y + WEEKDAY_FONT_Y, 26, 26));
+  s_layer_day_of_month = text_layer_create(GRect(center.x + DATE_X, center.y + WEEKDAY_Y + WEEKDAY_FONT_Y, 16, 16));
   text_layer_set_background_color(s_layer_day_of_month, GColorClear);
   text_layer_set_font(s_layer_day_of_month, s_font_big);
-  text_layer_set_text_alignment(s_layer_day_of_month, GTextAlignmentLeft);
+  text_layer_set_text_alignment(s_layer_day_of_month, GTextAlignmentRight);
   
-  s_layer_weekday = text_layer_create(GRect(center.x + WEEKDAY_X + 1, center.y + WEEKDAY_Y + WEEKDAY_FONT_Y, 40, 20));
+  s_layer_weekday = text_layer_create(GRect(center.x + WEEKDAY_X + 1, center.y + WEEKDAY_Y + WEEKDAY_FONT_Y, 40, 16));
   text_layer_set_background_color(s_layer_weekday, GColorClear);
   text_layer_set_font(s_layer_weekday, s_font_big);
   text_layer_set_text_alignment(s_layer_weekday, GTextAlignmentLeft);
@@ -505,9 +521,12 @@ void ui_update_weather() {
   ui_show();
 }
 
-void ui_update_colors() {
+void ui_update_config() {
   _generate_bitmaps();
 
+  layer_set_hidden((Layer*)s_layer_temperature, !config_show_weather());
+  layer_set_hidden((Layer*)s_layer_weather, !config_show_weather());
+  
   text_layer_set_text_color(s_layer_temperature, config_get_color_text());
   text_layer_set_text_color(s_layer_weekday, config_get_color_bg());
   text_layer_set_text_color(s_layer_day_of_month, config_get_color_bg());

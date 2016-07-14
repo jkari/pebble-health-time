@@ -1,8 +1,8 @@
 #include "gbitmap_color_palette_manipulator.h"
 
-#ifdef PBL_COLOR
+//#ifdef PBL_COLOR
 
-#define SHOW_APP_LOGS
+//#define SHOW_APP_LOGS
 
 char* get_gbitmapformat_text(GBitmapFormat format){
 	switch (format) {
@@ -191,4 +191,4 @@ const char* get_gcolor_text(GColor m_color){
 	return GColorsNames[m_color.argb & 0x3F];
 
 }
-#endif	
+//#endif	

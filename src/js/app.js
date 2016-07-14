@@ -1,3 +1,7 @@
+var Clay = require('pebble-clay');
+var clayConfig = require('./config');
+var clay = new Clay(clayConfig);
+
 /*
 * KiezelPay Integration Library - v1.5 - Copyright Kiezel 2016
 *
@@ -191,9 +195,12 @@ Pebble.addEventListener("appmessage", function (e) {
 /* === KIEZELPAY === GENERATED CODE END === DO NOT MODIFY ABOVE === */
 /********************************************************************/
 
-var MESSAGE_TYPE_READY = 1,
-    MESSAGE_TYPE_WEATHER = 2,
-    MESSAGE_TYPE_CONFIG = 3;
+var MESSAGE_TYPE_READY = 100,
+    MESSAGE_TYPE_WEATHER = 200;
+
+var openWeatherApiKey = "d558cccbf0cfbcd269a8dba4d58216c8";
+
+var useCelcius = true;
 
 Pebble.addEventListener("ready", function (e) {
   //init kiezelpay and register your own handler to receive appMessages
@@ -214,54 +221,14 @@ Pebble.addEventListener("ready", function (e) {
 });
 
 function onAppMessageReceived(appMsg) {
-  console.log('AppMessage data: ' + appMsg.payload.KEY_USE_CELCIUS);
-  useCelcius = appMsg.payload.KEY_USE_CELCIUS;
+  console.log('AppMessage data: ' + appMsg.payload.USE_CELCIUS);
+  useCelcius = appMsg.payload.USE_CELCIUS;
   getWeather();
 }
 
 //
 // My code
 //
-
-function parseColorInt(value) {
-  return parseInt(value.substr(value.length - 6), 16);
-}
-
-Pebble.addEventListener('showConfiguration', function(e) {
-  Pebble.openURL('http://95.85.12.164/mytime/');
-});
-
-Pebble.addEventListener('webviewclosed', function(e) {
-  // Decode and parse config data as JSON
-  var config_data = JSON.parse(decodeURIComponent(e.response));
-  console.log('Config window returned: ', JSON.stringify(config_data));
-
-  // Send settings to Pebble watchapp
-  Pebble.sendAppMessage(
-    {
-      'KEY_MESSAGE_TYPE': MESSAGE_TYPE_CONFIG,
-      'KEY_USE_CELCIUS': parseInt(config_data.use_celcius),
-      'KEY_COLOR_BG': parseColorInt(config_data.color_bg),
-      'KEY_COLOR_TEXT': parseColorInt(config_data.color_text),
-      'KEY_COLOR_LIGHT': parseColorInt(config_data.color_light),
-      'KEY_COLOR_DARK': parseColorInt(config_data.color_dark),
-      'KEY_COLOR_MINUTE': parseColorInt(config_data.color_minute),
-      'KEY_COLOR_HOUR': parseColorInt(config_data.color_hour),
-      'KEY_COLOR_ACTIVITY': parseColorInt(config_data.color_activity),
-      'KEY_ACTIVITY_SENSITIVITY': parseInt(config_data.activity_sensitivity)
-    },
-    function(){
-      console.log('Sent config data to Pebble');  
-    },
-    function() {
-      console.log('Failed to send config data!');
-    }
-  );
-});
-
-var openWeatherApiKey = "d558cccbf0cfbcd269a8dba4d58216c8";
-
-var useCelcius = true;
 
 var xhrRequest = function (url, type, callback) {
   var xhr = new XMLHttpRequest();
@@ -309,11 +276,11 @@ function locationSuccess(pos) {
       // Send to Pebble
       Pebble.sendAppMessage(
         {
-          KEY_MESSAGE_TYPE: MESSAGE_TYPE_WEATHER,
-          KEY_TEMPERATURE: temperature,
-          KEY_CONDITIONS: json.weather[0].id,
-          KEY_SUNRISE: parseInt(sunriseStr),
-          KEY_SUNSET: parseInt(sunsetStr)
+          MESSAGE_TYPE: MESSAGE_TYPE_WEATHER,
+          TEMPERATURE: temperature,
+          CONDITIONS: json.weather[0].id,
+          SUNRISE: parseInt(sunriseStr),
+          SUNSET: parseInt(sunsetStr)
         },
         function(e) {
           console.log('Weather info sent to Pebble successfully!');

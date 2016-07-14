@@ -3,7 +3,8 @@
 
 static uint8_t _sleep_data[DATA_ARRAY_SIZE];
 static uint8_t _activity_data[DATA_ARRAY_SIZE];
-
+static bool _is_fast_poll_active = false;
+  
 void _load_activity_data() {
   if (persist_exists(PERSIST_HEALTH_ACTIVITY)) {
     persist_read_data(PERSIST_HEALTH_ACTIVITY, _activity_data, DATA_ARRAY_SIZE * sizeof(uint8_t));
@@ -95,8 +96,6 @@ void _save_current_activity() {
     return;
   }
   
-  health_service_events_unsubscribe();
-  
   int new_steps = _get_today_total_activity() - persist_read_int(PERSIST_HEALTH_LAST_ACTIVITY_VALUE);
   int steps_per_minute = new_steps / ((float)interval / 60.f);
 
@@ -104,22 +103,37 @@ void _save_current_activity() {
   persist_write_int(PERSIST_HEALTH_LAST_ACTIVITY_VALUE, _get_today_total_activity());
   persist_write_int(PERSIST_HEALTH_LAST_ACTIVITY_SPM, steps_per_minute);
   
-  if (_get_current_steps_per_minute() >= FAST_POLL_MIN_SPM) {
-    health_service_events_subscribe(_health_event_handler, NULL);
+  bool steps_exceeded = _get_current_steps_per_minute() >= FAST_POLL_MIN_SPM;
+  
+  if (_is_fast_poll_active || steps_exceeded) {
     AppWorkerMessage msg_data;
     app_worker_send_message(MESSAGE_ID_WORKER_INSTANT_UPDATE, &msg_data);
   }
+  
+  if (!_is_fast_poll_active && steps_exceeded) {
+    _is_fast_poll_active = true;
+    health_service_events_subscribe(_health_event_handler, NULL);
+  }
+  
+  if (_is_fast_poll_active && !steps_exceeded) {
+    _is_fast_poll_active = false;
+    health_service_events_unsubscribe();
+  }
 }
 
-static void _set_sleep(int key, uint8_t value) {
+static void _set_sleep(int key, uint8_t value, bool reset) {
   value = value > 15 ? 15 : value;
   
   int index = key / 2;
   if (key % 2 == 0) {
-    _sleep_data[index] = _sleep_data[index] & 0x0f;
+    if (reset) {
+      _sleep_data[index] = _sleep_data[index] & 0x0f;
+    }
     _sleep_data[index] = _sleep_data[index] | (value << 4);
   } else {
-    _sleep_data[index] = _sleep_data[index] & 0xf0;
+    if (reset) {
+      _sleep_data[index] = _sleep_data[index] & 0xf0;
+    }
     _sleep_data[index] = _sleep_data[index] | value;
   }
 }
@@ -167,15 +181,16 @@ bool _is_activity_goal_achieved() {
 }
 
 bool _callback_sleep_data(HealthActivity activity, time_t time_start, time_t time_end, void *context) {
-    int iterations = (time_end - time_start) / (60 * ACTIVITY_BLOCK_MINUTES) + 1;
-    int start_index = _get_index_for_time(time_start, false);
-    int sleep_type = (activity == HealthActivityRestfulSleep) ? 2 : 1;
+  int iterations = (time_end - time_start) / (60 * ACTIVITY_BLOCK_MINUTES) + 1;
+  int start_index = _get_index_for_time(time_start, false);
+  int sleep_type = SLEEP_NORMAL | ((activity & HealthActivityRestfulSleep) ? SLEEP_RESTFUL : 0);
+  APP_LOG(APP_LOG_LEVEL_INFO, "%s type=%d start=%d length=%d", __func__, sleep_type, start_index, iterations);
 
-    for (int i = start_index; i < start_index + iterations; i++) {
-        _set_sleep(i, sleep_type);
-    }
+  for (int i = start_index; i < start_index + iterations; i++) {
+    _set_sleep(i % DATA_ARRAY_SIZE, sleep_type, false);
+  }
 
-    return true;
+  return true;
 }
 
 void health_update_minute() {
@@ -194,12 +209,12 @@ void health_update_minute() {
   int sleep_status = 0;
 
   if (activities & HealthActivityRestfulSleep) {
-    sleep_status = 2;
+    sleep_status = SLEEP_RESTFUL | SLEEP_NORMAL;
   } else if (activities & HealthActivitySleep) {
-    sleep_status = 1;
+    sleep_status = SLEEP_NORMAL;
   }
   
-  _set_sleep(_get_index_for_time(current_time, false), sleep_status);
+  _set_sleep(_get_index_for_time(current_time, false), sleep_status, true);
   
   if (last_index_activity != current_index_activity) {
     _save_health_block_activity(current_time, total_activity);
@@ -214,16 +229,7 @@ void health_update_minute() {
 
 void health_update_half_hour() {
   health_service_activities_iterate(
-    HealthActivitySleep,
-    time(NULL) - 3600,
-    time(NULL),
-    HealthIterationDirectionFuture,
-    _callback_sleep_data,
-    (void*)NULL
-  );
-
-  health_service_activities_iterate(
-    HealthActivityRestfulSleep,
+    HealthActivitySleep | HealthActivityRestfulSleep,
     time(NULL) - 3600,
     time(NULL),
     HealthIterationDirectionFuture,

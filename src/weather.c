@@ -5,7 +5,7 @@
 #include "ui.h"
 
 void weather_init(void) {
-  if (!persist_exists(PERSIST_KEY_TEMPERATURE)) {
+  if (!persist_exists(MESSAGE_KEY_TEMPERATURE) && config_show_weather()) {
     weather_update();
   }
 }
@@ -54,35 +54,35 @@ void weather_received_callback(DictionaryIterator* iterator) {
   Tuple *sunset_tuple = dict_find(iterator, MESSAGE_KEY_SUNSET);
  
   if (temperature_tuple && conditions_tuple && sunrise_tuple && sunset_tuple) {
-    persist_write_int(PERSIST_KEY_TEMPERATURE, (int)temperature_tuple->value->int32);
-    persist_write_int(PERSIST_KEY_CONDITION, (int)conditions_tuple->value->int32);
-    persist_write_int(PERSIST_KEY_SUNRISE, (int)sunrise_tuple->value->int32);
-    persist_write_int(PERSIST_KEY_SUNSET, (int)sunset_tuple->value->int32);
+    persist_write_int(MESSAGE_KEY_TEMPERATURE, (int)temperature_tuple->value->int32);
+    persist_write_int(MESSAGE_KEY_CONDITIONS, (int)conditions_tuple->value->int32);
+    persist_write_int(MESSAGE_KEY_SUNRISE, (int)sunrise_tuple->value->int32);
+    persist_write_int(MESSAGE_KEY_SUNSET, (int)sunset_tuple->value->int32);
   }
   
   ui_update_weather();
 }
 
 int weather_get_sunrise_hour() {
-  return persist_read_int(PERSIST_KEY_SUNRISE) / 100;
+  return persist_read_int(MESSAGE_KEY_SUNRISE) / 100;
 }
 
 int weather_get_sunset_hour() {
-  return persist_read_int(PERSIST_KEY_SUNSET) / 100;
+  return persist_read_int(MESSAGE_KEY_SUNSET) / 100;
 }
 
 int weather_get_sunrise_minute() {
-  return persist_read_int(PERSIST_KEY_SUNRISE) % 100;
+  return persist_read_int(MESSAGE_KEY_SUNRISE) % 100;
 }
 
 int weather_get_sunset_minute() {
-  return persist_read_int(PERSIST_KEY_SUNSET) % 100;
+  return persist_read_int(MESSAGE_KEY_SUNSET) % 100;
 }
 
 int weather_get_condition() {
-  return persist_read_int(PERSIST_KEY_CONDITION);
+  return persist_read_int(MESSAGE_KEY_CONDITIONS);
 }
 
 int weather_get_temperature() {
-  return persist_read_int(PERSIST_KEY_TEMPERATURE);
+  return persist_read_int(MESSAGE_KEY_TEMPERATURE);
 }
