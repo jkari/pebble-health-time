@@ -1,8 +1,10 @@
 {
     "author": "Jussi Kari",
     "dependencies": {
+        "kiezelpay-core": "^2.0.5",
         "pebble-clay": "^1.0.2",
-        "pebble-events": "^1.0.2"
+        "pebble-events": "^1.0.2",
+        "pebble-generic-weather": "^1.1.0"
     },
     "keywords": [],
     "name": "health-time",
@@ -19,18 +21,6 @@
             "CONDITIONS",
             "SUNRISE",
             "SUNSET",
-            "KIEZELPAY_APP_ID",
-            "KIEZELPAY_DEVICE_TOKEN",
-            "KIEZELPAY_INTERNET_FAIL",
-            "KIEZELPAY_PURCHASE_CODE",
-            "KIEZELPAY_PURCHASE_STATUS",
-            "KIEZELPAY_RANDOM",
-            "KIEZELPAY_READY",
-            "KIEZELPAY_STATUS_CHECK",
-            "KIEZELPAY_STATUS_CHECKSUM",
-            "KIEZELPAY_STATUS_RESULT",
-            "KIEZELPAY_STATUS_TRIAL_DURATION",
-            "KIEZELPAY_STATUS_VALIDITY_PERIOD",
             "MESSAGE_TYPE",
             "SHOW_ACTIVITY_CURRENT",
             "SHOW_ACTIVITY",
@@ -40,11 +30,21 @@
             "SHOW_PINS_ACHIEVEMENT",
             "SHOW_WEATHER",
             "THEME",
-            "USE_CELCIUS"
+            "USE_CELCIUS",
+            "APIKEY_FORECASTIO",
+            "APIKEY_OPENWEATHERMAP",
+            "APIKEY_WEATHERUNDERGROUND",
+            "WEATHER_PROVIDER"
         ],
         "projectType": "native",
         "resources": {
             "media": [
+                {
+                    "file": "images/bluetooth-small.png",
+                    "name": "IMAGE_BLUETOOTH",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
                 {
                     "file": "images/trophy.png",
                     "name": "IMAGE_ACHIEVEMENT",
@@ -130,17 +130,7 @@
                     "type": "bitmap"
                 },
                 {
-                    "file": "images/bt.png",
-                    "name": "IMAGE_BLUETOOTH",
-                    "type": "bitmap"
-                },
-                {
-                    "file": "fonts/E4 2017.ttf",
-                    "name": "FONT_8",
-                    "targetPlatforms": null,
-                    "type": "font"
-                },
-                {
+                    "characterRegex": "[0-9A-Z\\+\\-]",
                     "file": "fonts/E4 2017.ttf",
                     "name": "FONT_16",
                     "targetPlatforms": null,
@@ -150,7 +140,6 @@
         },
         "sdkVersion": "3",
         "targetPlatforms": [
-            "aplite",
             "basalt",
             "chalk"
         ],
@@ -159,5 +148,5 @@
             "watchface": true
         }
     },
-    "version": "1.0.0"
+    "version": "1.6.0"
 }

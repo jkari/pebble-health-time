@@ -20,12 +20,15 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   
   if (tick_time->tm_min % 30 == 0) {
     weather_update();
+    health_update_half_hour();
   }
   
   if (tick_time->tm_hour == 0 && tick_time->tm_min == 0) {
     ui_update_date();
   }
   
+  health_update_minute();
+
   ui_show();
 }
 
@@ -62,10 +65,19 @@ static void _focused_handler(bool in_focus) {
 static void main_window_load(Window *window) {
   LOG("%s", __func__);
   
-  //kiezelpay_init();
+  health_init();
+  health_update_half_hour();
+  
+  LOG("%d", (int)heap_bytes_free());
+  
+  kiezelpay_init();
+  
+  LOG("%d", (int)heap_bytes_free());
   
   communication_init();
-
+  
+  LOG("%d", (int)heap_bytes_free());
+  
   ui_load(window);
   
   handle_tick_timer = events_tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
@@ -98,6 +110,7 @@ static void main_window_unload(Window *window) {
   kiezelpay_deinit();
   
   communication_deinit();
+  health_deinit();
   
   events_connection_service_unsubscribe(handle_connection);
   events_battery_state_service_unsubscribe(handle_battery_state);

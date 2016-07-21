@@ -5,7 +5,8 @@
 
 static void _update_settings(int use_celcius, char* theme, int show_activity_current,
                             int show_activity_progress, int show_activity, int show_sleep,
-                            int show_weather, int show_pins_sun, int show_pins_achievement) {
+                            int show_weather, int show_pins_sun, int show_pins_achievement,
+                            char* weather_provider, char* apikey_fio, char* apikey_owm, char* apikey_wu) {
   persist_write_int(MESSAGE_KEY_USE_CELCIUS, use_celcius);
   persist_write_string(MESSAGE_KEY_THEME, theme);
   persist_write_int(MESSAGE_KEY_SHOW_ACTIVITY_CURRENT, show_activity_current);
@@ -15,6 +16,10 @@ static void _update_settings(int use_celcius, char* theme, int show_activity_cur
   persist_write_int(MESSAGE_KEY_SHOW_WEATHER, show_weather);
   persist_write_int(MESSAGE_KEY_SHOW_PINS_SUN, show_pins_sun);
   persist_write_int(MESSAGE_KEY_SHOW_PINS_ACHIEVEMENT, show_pins_achievement);
+  persist_write_string(MESSAGE_KEY_WEATHER_PROVIDER, weather_provider);
+  persist_write_string(MESSAGE_KEY_APIKEY_FORECASTIO, apikey_fio);
+  persist_write_string(MESSAGE_KEY_APIKEY_OPENWEATHERMAP, apikey_owm);
+  persist_write_string(MESSAGE_KEY_APIKEY_WEATHERUNDERGROUND, apikey_wu);
   
   ui_update_config();
   weather_update();
@@ -31,18 +36,17 @@ void config_received_callback(DictionaryIterator* iterator) {
   Tuple *show_weather = dict_find(iterator, MESSAGE_KEY_SHOW_WEATHER);
   Tuple *show_pins_sun = dict_find(iterator, MESSAGE_KEY_SHOW_PINS_SUN);
   Tuple *show_pins_achievement = dict_find(iterator, MESSAGE_KEY_SHOW_PINS_ACHIEVEMENT);
+  Tuple *weather_provider = dict_find(iterator, MESSAGE_KEY_WEATHER_PROVIDER);
+  Tuple *apikey_fio = dict_find(iterator, MESSAGE_KEY_APIKEY_FORECASTIO);
+  Tuple *apikey_owm = dict_find(iterator, MESSAGE_KEY_APIKEY_OPENWEATHERMAP);
+  Tuple *apikey_wu = dict_find(iterator, MESSAGE_KEY_APIKEY_WEATHERUNDERGROUND);
   
   LOG(
-    "Received use_celcius=%s, theme=%s, show_activity_current=%d, show_activity_progress=%d, show_activity=%d, show_sleep=%d, show_weather=%d, show_pins_sun=%d, show_pins_achievement=%d",
-    use_celcius->value->cstring,
-    theme->value->cstring,
-    (int)show_activity_current->value->int32,
-    (int)show_activity_progress->value->int32,
-    (int)show_activity->value->int32,
-    (int)show_sleep->value->int32,
-    (int)show_weather->value->int32,
-    (int)show_pins_sun->value->int32,
-    (int)show_pins_achievement->value->int32
+    "provider=%s, apikey_fio=%s, apikey_owm=%s, apikey_wu=%s",
+    weather_provider->value->cstring,
+    apikey_fio->value->cstring,
+    apikey_owm->value->cstring,
+    apikey_wu->value->cstring
   );
   
   _update_settings(
@@ -54,7 +58,11 @@ void config_received_callback(DictionaryIterator* iterator) {
     show_sleep->value->int32,
     show_weather->value->int32,
     show_pins_sun->value->int32,
-    show_pins_achievement->value->int32
+    show_pins_achievement->value->int32,
+    weather_provider->value->cstring,
+    apikey_fio->value->cstring,
+    apikey_owm->value->cstring,
+    apikey_wu->value->cstring
   );
 }
 
@@ -111,7 +119,7 @@ GColor config_get_color_text() {
 }
 
 GColor config_get_color_text2() {
-#ifdef PBL_APLITE
+#ifdef PBL_BW
   return GColorLightGray;
 #else
   return _get_theme() == THEME_LIGHT ? GColorLightGray : GColorDarkGray;
@@ -123,15 +131,15 @@ GColor config_get_color_marker() {
 }
 
 GColor config_get_color_hour() {
-#ifdef PBL_APLITE
-  return GColorLightGray;
+#ifdef PBL_BW
+  return config_get_color_minute();
 #else
   return _get_theme() == THEME_LIGHT ? GColorBulgarianRose : GColorElectricBlue;
 #endif
 }
 
 GColor config_get_color_minute() {
-#ifdef PBL_APLITE
+#ifdef PBL_BW
   return _get_theme() == THEME_LIGHT ? GColorBlack : GColorWhite;
 #else
   return _get_theme() == THEME_LIGHT ? GColorOxfordBlue : GColorMelon;
@@ -139,7 +147,7 @@ GColor config_get_color_minute() {
 }
 
 GColor config_get_color_sleep(int level) {
-#ifdef PBL_APLITE
+#ifdef PBL_BW
   if (level == 1) {
     return GColorLightGray;
   } else {
@@ -151,12 +159,12 @@ GColor config_get_color_sleep(int level) {
 }
 
 GColor config_get_color_activity(int level) {
-#ifdef PBL_APLITE
+#ifdef PBL_BW
   if (level == 1) {
     return GColorLightGray;
-  } else if (level == 2) {
-    return _get_theme() == THEME_LIGHT ? GColorBlack : GColorWhite;
   }
+  
+  return _get_theme() == THEME_LIGHT ? GColorBlack : GColorWhite;
 #else
   if (level == 1) {
     return GColorOrange;
@@ -169,7 +177,7 @@ GColor config_get_color_activity(int level) {
 }
 
 GColor config_get_color_current_activity_neutral() {
-#ifdef PBL_APLITE
+#ifdef PBL_BW
   return GColorLightGray;
 #else
   return GColorGreen;
@@ -177,15 +185,15 @@ GColor config_get_color_current_activity_neutral() {
 }
 
 GColor config_get_color_current_activity_minus() {
-#ifdef PBL_APLITE
-  return _get_theme() == THEME_LIGHT ? GColorWhite : GColorBlack;
+#ifdef PBL_BW
+  return GColorLightGray;
 #else
   return GColorRed;
 #endif
 }
 
 GColor config_get_color_current_activity_plus() {
-#ifdef PBL_APLITE
+#ifdef PBL_BW
   return _get_theme() == THEME_LIGHT ? GColorBlack : GColorWhite;
 #else
   return GColorDarkGreen;
@@ -193,7 +201,7 @@ GColor config_get_color_current_activity_plus() {
 }
 
 GColor config_get_color_weekday_bg() {
-#ifdef PBL_APLITE
+#ifdef PBL_BW
   return GColorLightGray;
 #else
   return _get_theme() == THEME_LIGHT ? GColorDarkGray : GColorLightGray;
@@ -201,11 +209,12 @@ GColor config_get_color_weekday_bg() {
 }
 
 GColor config_get_color_battery(int percentage) {
-#ifdef PBL_APLITE
+#ifdef PBL_BW
   if (percentage <= BATTERY_LOW_MAX) {
     return GColorLightGray;
   } else {
     return _get_theme() == THEME_LIGHT ? GColorBlack : GColorWhite;
+  }
 #else
   if (percentage <= BATTERY_LOW_MAX) {
     return GColorRed;  
@@ -217,6 +226,43 @@ GColor config_get_color_battery(int percentage) {
 #endif
 }
 
+GColor config_get_color_pin_line() {
+#ifdef PBL_BW
+  return GColorBlack;
+#else
+  return config_get_color_weekday_bg();
+#endif
+}
+
 bool config_get_use_celcius() {
   return persist_exists(MESSAGE_KEY_USE_CELCIUS) ? persist_read_int(MESSAGE_KEY_USE_CELCIUS) > 0 : true;
+}
+
+WeatherProvider config_get_weather_provider() {
+  char provider[8];
+  
+  persist_read_string(MESSAGE_KEY_WEATHER_PROVIDER, provider, 8);
+  
+  if (strcmp(provider, "fio") == 0) {
+    return WEATHER_PROVIDER_FORECASTIO;
+  } else if (strcmp(provider, "owm") == 0) {
+    return WEATHER_PROVIDER_OPENWEATHERMAP;
+  } else if (strcmp(provider, "wu")) {
+    return WEATHER_PROVIDER_WEATHERUNDERGROUND;
+  }
+  
+  return WEATHER_PROVIDER_UNKNOWN;
+}
+
+char* config_get_weather_api_key() {
+  static char key[64];
+  
+  switch (config_get_weather_provider()) {
+    case WEATHER_PROVIDER_FORECASTIO: persist_read_string(MESSAGE_KEY_APIKEY_FORECASTIO, key, 64); break;
+    case WEATHER_PROVIDER_OPENWEATHERMAP: persist_read_string(MESSAGE_KEY_APIKEY_OPENWEATHERMAP, key, 64); break;
+    case WEATHER_PROVIDER_WEATHERUNDERGROUND: persist_read_string(MESSAGE_KEY_APIKEY_WEATHERUNDERGROUND, key, 64); break;
+    case WEATHER_PROVIDER_UNKNOWN: break;
+  }
+  
+  return key;
 }

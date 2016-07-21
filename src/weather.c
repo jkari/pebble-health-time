@@ -1,82 +1,86 @@
 #include <pebble.h>
+#include <pebble-generic-weather/pebble-generic-weather.h>
 #include "weather.h"
 #include "config.h"
 #include "communication.h"
 #include "ui.h"
 
+static GenericWeatherInfo _weather;
+static bool _is_available = false;
+
+void _set_config() {
+  generic_weather_init();
+
+  switch (config_get_weather_provider()) {
+    case WEATHER_PROVIDER_FORECASTIO: generic_weather_set_provider(GenericWeatherProviderForecastIo); break;
+    case WEATHER_PROVIDER_OPENWEATHERMAP: generic_weather_set_provider(GenericWeatherProviderOpenWeatherMap); break;
+    case WEATHER_PROVIDER_WEATHERUNDERGROUND: generic_weather_set_provider(GenericWeatherProviderWeatherUnderground); break;
+    case WEATHER_PROVIDER_UNKNOWN:break;
+  }
+    
+  generic_weather_set_api_key(config_get_weather_api_key());
+}
+
 void weather_init(void) {
+  if (config_show_weather()) {
+    _set_config();
+  }
+    
   if (!persist_exists(MESSAGE_KEY_TEMPERATURE) && config_show_weather()) {
     weather_update();
   }
 }
 
-int weather_get_resource_id(int condition) {
-  // http://openweathermap.org/weather-conditions
-  int resource_id = 0;
-  
-  if (condition == 200 || condition == 210 || condition == 230) {
-    resource_id = RESOURCE_ID_IMAGE_THUNDER_LIGHT;
-  } else if (condition >= 200 && condition < 300) {
-    resource_id = RESOURCE_ID_IMAGE_THUNDER_HEAVY;
-  } else if (condition == 300 || condition == 310 || condition == 500 || condition == 520) {
-    resource_id = RESOURCE_ID_IMAGE_RAIN_LIGHT;
-  } else if (condition >= 300 && condition < 600) {
-    resource_id = RESOURCE_ID_IMAGE_RAIN_HEAVY;
-  } else if (condition == 600 || condition == 615 || condition == 620) {
-    resource_id = RESOURCE_ID_IMAGE_SNOW_LIGHT;
-  } else if (condition == 621 || condition == 622) {
-    resource_id = RESOURCE_ID_IMAGE_SNOW_SHOWER;
-  } else if (condition >= 600 && condition < 700) {
-    resource_id = RESOURCE_ID_IMAGE_SNOW_HEAVY;
-  } else if (condition >= 700 && condition < 800) {
-    resource_id = RESOURCE_ID_IMAGE_MIST;
-  } else if (condition == 800) {
-    resource_id = RESOURCE_ID_IMAGE_CLEAR;
-  } else if (condition == 801) {
-    resource_id = RESOURCE_ID_IMAGE_CLOUDS_LIGHT;
-  } else if (condition == 802) {
-    resource_id = RESOURCE_ID_IMAGE_CLOUDS_MEDIUM;
-  } else if (condition == 803 || condition == 804) {
-    resource_id = RESOURCE_ID_IMAGE_CLOUDS_HEAVY;
+int weather_get_resource_id() {
+  switch (_weather.condition) {
+    case GenericWeatherConditionClearSky: return RESOURCE_ID_IMAGE_CLEAR;
+    case GenericWeatherConditionFewClouds: return RESOURCE_ID_IMAGE_CLOUDS_LIGHT;
+    case GenericWeatherConditionScatteredClouds: return RESOURCE_ID_IMAGE_CLOUDS_MEDIUM;
+    case GenericWeatherConditionBrokenClouds: return RESOURCE_ID_IMAGE_CLOUDS_HEAVY;
+    case GenericWeatherConditionShowerRain: return RESOURCE_ID_IMAGE_RAIN_LIGHT;
+    case GenericWeatherConditionRain: return RESOURCE_ID_IMAGE_THUNDER_HEAVY;
+    case GenericWeatherConditionThunderstorm: return RESOURCE_ID_IMAGE_THUNDER_HEAVY;
+    case GenericWeatherConditionSnow: return RESOURCE_ID_IMAGE_SNOW_HEAVY;
+    case GenericWeatherConditionMist: return RESOURCE_ID_IMAGE_MIST;
+    case GenericWeatherConditionUnknown: return 0; 
   }
   
-  return resource_id;
+  return 0;
+}
+
+static void _weather_data_callback(GenericWeatherInfo *info, GenericWeatherStatus status) {
+  if (status == GenericWeatherStatusAvailable) {
+    _weather = *info;
+    ui_update_weather();
+    _is_available = true;
+  }
 }
 
 void weather_update(void) {
-  communication_request_weather();
-}
-
-void weather_received_callback(DictionaryIterator* iterator) {
-  Tuple *temperature_tuple = dict_find(iterator, MESSAGE_KEY_TEMPERATURE);
-  Tuple *conditions_tuple = dict_find(iterator, MESSAGE_KEY_CONDITIONS);
-  Tuple *sunrise_tuple = dict_find(iterator, MESSAGE_KEY_SUNRISE);
-  Tuple *sunset_tuple = dict_find(iterator, MESSAGE_KEY_SUNSET);
- 
-  if (temperature_tuple && conditions_tuple && sunrise_tuple && sunset_tuple) {
-    persist_write_int(MESSAGE_KEY_TEMPERATURE, (int)temperature_tuple->value->int32);
-    persist_write_int(MESSAGE_KEY_CONDITIONS, (int)conditions_tuple->value->int32);
-    persist_write_int(MESSAGE_KEY_SUNRISE, (int)sunrise_tuple->value->int32);
-    persist_write_int(MESSAGE_KEY_SUNSET, (int)sunset_tuple->value->int32);
+  if (config_show_weather()) {
+    _set_config();
+    generic_weather_fetch(_weather_data_callback);
   }
-  
-  ui_update_weather();
 }
 
 int weather_get_sunrise_hour() {
-  return persist_read_int(MESSAGE_KEY_SUNRISE) / 100;
+  struct tm *tick_time = localtime(&_weather.timesunrise);
+  return tick_time->tm_hour;
 }
 
 int weather_get_sunset_hour() {
-  return persist_read_int(MESSAGE_KEY_SUNSET) / 100;
+  struct tm *tick_time = localtime(&_weather.timesunset);
+  return tick_time->tm_hour;
 }
 
 int weather_get_sunrise_minute() {
-  return persist_read_int(MESSAGE_KEY_SUNRISE) % 100;
+  struct tm *tick_time = localtime(&_weather.timesunrise);
+  return tick_time->tm_min;
 }
 
 int weather_get_sunset_minute() {
-  return persist_read_int(MESSAGE_KEY_SUNSET) % 100;
+  struct tm *tick_time = localtime(&_weather.timesunset);
+  return tick_time->tm_min;
 }
 
 int weather_get_condition() {
@@ -84,5 +88,9 @@ int weather_get_condition() {
 }
 
 int weather_get_temperature() {
-  return persist_read_int(MESSAGE_KEY_TEMPERATURE);
+  return config_get_use_celcius() ? _weather.temp_c : _weather.temp_f;
+}
+
+bool weather_is_available() {
+  return _is_available;
 }

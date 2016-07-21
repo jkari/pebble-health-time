@@ -9,6 +9,7 @@
 static TextLayer *s_layer_temperature;
 static TextLayer *s_layer_day_of_month;
 static TextLayer *s_layer_weekday;
+static TextLayer *s_layer_steps;
 static Layer *s_layer_canvas;
 static Layer *s_layer_hands;
 static Layer *s_layer_battery;
@@ -21,8 +22,7 @@ static GBitmap *s_bitmap_steps2 = 0;
 static GBitmap *s_bitmap_achievement = 0;
 static BitmapLayer *s_layer_bluetooth;
 static BitmapLayer *s_layer_weather;
-static GFont s_font_big;
-static GFont s_font_small;
+static GFont s_font;
 static bool s_is_battery_animation_active = false;
 static int s_battery_animation_percent = 0;
 
@@ -33,6 +33,12 @@ static int get_hour_angle() {
 }
 
 static void _ui_set_temperature() {
+  layer_set_hidden((Layer*)s_layer_temperature, !(config_show_weather() && weather_is_available()));
+  
+  if (!weather_is_available()) {
+    return;
+  }
+  
   static char temperature_buffer[8];
   
   int temperature = weather_get_temperature();
@@ -59,6 +65,12 @@ static void _ui_reload_bitmap(GBitmap **image, uint32_t resource_id, GColor colo
 }
 
 static void _ui_set_weather_icon() {
+  layer_set_hidden((Layer*)s_layer_weather, !(config_show_weather() && weather_is_available()));
+  
+  if (!weather_is_available()) {
+    return;
+  }
+  
   int32_t resource_id = weather_get_resource_id(weather_get_condition());
   
   _ui_reload_bitmap(&s_bitmap_weather, resource_id, config_get_color_text());
@@ -101,14 +113,6 @@ static float _get_sunset_ui_angle(GPoint offset) {
   return 360.f * hour_sunset / 12.f;
 }
 
-static void _draw_weather_bg(GContext *ctx, GPoint offset) {
-  graphics_context_set_fill_color(ctx, GColorLightGray);
-  graphics_fill_circle(ctx, GPoint(offset.x, offset.y + WEATHER_ICON_Y + WEATHER_ICON_WIDTH/2), WEATHER_ICON_BG_RADIUS);
-  
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_circle(ctx, GPoint(offset.x + WEATHER_TEMPERATURE_X + WEATHER_TEMPERATURE_WIDTH/2, offset.y + WEATHER_TEMPERATURE_Y + WEATHER_TEMPERATURE_HEIGHT/2), WEATHER_TEMPERATURE_BG_RADIUS);
-}
-
 static void _draw_pin(GContext* ctx, GPoint offset, float angle, GBitmap* bitmap) {
   int size_x = DATA_SIZE_X - 2 * PIN_RADIUS - (2 * DATA_WIDTH + 2 * DATA_SPACING)
     * ((config_show_activity_progress() ? 1 : 0) + (config_show_sleep() ? 1 : 0) + (config_show_activity() ? 1 : 0));
@@ -119,7 +123,7 @@ static void _draw_pin(GContext* ctx, GPoint offset, float angle, GBitmap* bitmap
   graphics_context_set_compositing_mode(ctx, GCompOpSet);
   graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(icon_point.x - PIN_ICON_WIDTH/2, icon_point.y - PIN_ICON_WIDTH/2, PIN_ICON_WIDTH, PIN_ICON_WIDTH));
   
-  graphics_context_set_stroke_color(ctx, config_get_color_weekday_bg());
+  graphics_context_set_stroke_color(ctx, config_get_color_pin_line());
   graphics_context_set_stroke_width(ctx, WIDTH_EVENT_POINTER);
   
   GPoint marker_point = draw_get_arc_point(angle, GSize(MARKER_SIZE_X, MARKER_SIZE_Y), offset);
@@ -152,8 +156,7 @@ static int _get_activity_level(int activity) {
 }
 
 static void _draw_activity_cycle(GContext *ctx, GPoint offset) {
-  uint8_t activity_data[DATA_ARRAY_SIZE];
-  health_get_activity(activity_data);
+  uint8_t* activity_data = health_get_activity();
   
   int current_index = health_get_index_for_time(time(NULL), true);
   int current_level_start_index = current_index;
@@ -185,8 +188,7 @@ static void _draw_activity_cycle(GContext *ctx, GPoint offset) {
 }
 
 void _draw_sleep_cycle(GContext *ctx, GPoint offset) {
-  uint8_t sleep_data[DATA_ARRAY_SIZE];
-  health_get_sleep(sleep_data);
+  uint8_t* sleep_data = health_get_sleep();
   
   int current_index = health_get_index_for_time(time(NULL), false);
   int current_level_start_index = current_index;
@@ -221,6 +223,7 @@ static void _draw_activity_current(GContext* ctx, GPoint offset) {
   int current_activity = health_get_current_steps_per_minute();
   
   if (current_activity < CURRENT_ACTIVITY_SHOW_LIMIT_SPM) {
+    layer_set_hidden((Layer *)s_layer_steps, true);
     return;
   }
   
@@ -231,17 +234,13 @@ static void _draw_activity_current(GContext* ctx, GPoint offset) {
     bitmap = s_bitmap_steps2;
   }
   
-  graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(offset.x + STEPS_X - STEPS_WIDTH/2, offset.y + STEPS_Y, STEPS_WIDTH, STEPS_HEIGHT));
+  graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(offset.x + STEPS_X, offset.y + STEPS_Y, STEPS_WIDTH, STEPS_HEIGHT));
   
-  draw_arc(
-    ctx,
-    GPoint(offset.x + STEPS_X, offset.y + STEPS_Y + STEPS_HEIGHT/2),
-    GSize(STEPS_SIZE_X, STEPS_SIZE_Y),
-    STEPS_CIRCLE_WIDTH,
-    0,
-    (current_activity / 255.f) * 360.f,
-    config_get_color_activity(_get_activity_level(current_activity))
-  );
+  static char value_buffer[5];
+  snprintf(value_buffer, sizeof(value_buffer), "%d", current_activity);
+  
+  text_layer_set_text(s_layer_steps, value_buffer);
+  layer_set_hidden((Layer *)s_layer_steps, false);
 }
 
 static void _draw_text_bg(GContext *ctx, GPoint offset) {
@@ -291,7 +290,7 @@ static void _draw_markers(GContext *ctx, GPoint offset) {
   graphics_context_set_stroke_color(ctx, config_get_color_marker());
     
   for (int i = 0; i < 60; i++) {
-    int length = i % 5 == 0 ? 10 : 6;
+    int length = i % 5 == 0 ? 12 : 8;
     float angle = 360.f * (i / 60.f);
     
     GPoint from = draw_get_arc_point(angle, GSize(MARKER_SIZE_X, MARKER_SIZE_Y), offset);
@@ -312,8 +311,8 @@ static void _draw_hands(GContext *ctx, GPoint offset) {
   int32_t hour_angle = get_hour_angle();
   
 #ifdef DEMO
-  hour_angle = TRIG_MAX_ANGLE * (7.9f / 12.f);
-  minute_angle = TRIG_MAX_ANGLE * (54.f / 60.f);
+  hour_angle = TRIG_MAX_ANGLE * (7.333f / 12.f);
+  minute_angle = TRIG_MAX_ANGLE * (20.f / 60.f);
 #endif
   
   GPoint minute_to = {
@@ -350,7 +349,7 @@ static void _layer_canvas_update_callback(Layer *layer, GContext *ctx) {
     _draw_activity_progress(ctx, offset);
   }
   
-  if (config_show_pins_sun()) {
+  if (config_show_pins_sun() && weather_is_available()) {
     _draw_pins_sun(ctx, offset);
   }
   
@@ -413,8 +412,7 @@ void ui_load(Window *window) {
   GRect bounds = layer_get_bounds(window_layer);
   GPoint center = grect_center_point(&bounds);
 
-  s_font_big = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_16));
-  s_font_small = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_8));
+  s_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_16));
   
   s_bitmap_bluetooth = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BLUETOOTH);
   s_bitmap_sunrise = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUN);
@@ -425,25 +423,25 @@ void ui_load(Window *window) {
   
   s_layer_day_of_month = text_layer_create(GRect(center.x + DATE_X, center.y + WEEKDAY_Y + WEEKDAY_FONT_Y, 16, 16));
   text_layer_set_background_color(s_layer_day_of_month, GColorClear);
-  text_layer_set_font(s_layer_day_of_month, s_font_big);
+  text_layer_set_font(s_layer_day_of_month, s_font);
   text_layer_set_text_alignment(s_layer_day_of_month, GTextAlignmentRight);
   
   s_layer_weekday = text_layer_create(GRect(center.x + WEEKDAY_X + 1, center.y + WEEKDAY_Y + WEEKDAY_FONT_Y, 40, 16));
   text_layer_set_background_color(s_layer_weekday, GColorClear);
-  text_layer_set_font(s_layer_weekday, s_font_big);
+  text_layer_set_font(s_layer_weekday, s_font);
   text_layer_set_text_alignment(s_layer_weekday, GTextAlignmentLeft);
 
   s_layer_temperature = text_layer_create(GRect(center.x + WEATHER_TEMPERATURE_X, center.y + WEATHER_TEMPERATURE_Y, WEATHER_TEMPERATURE_WIDTH, WEATHER_TEMPERATURE_HEIGHT));
   text_layer_set_background_color(s_layer_temperature, GColorClear);
   text_layer_set_text_alignment(s_layer_temperature, GTextAlignmentCenter);
-  text_layer_set_font(s_layer_temperature, s_font_big);
+  text_layer_set_font(s_layer_temperature, s_font);
   
   s_layer_weather = bitmap_layer_create(GRect(center.x - WEATHER_ICON_WIDTH/2, center.y + WEATHER_ICON_Y, WEATHER_ICON_WIDTH, WEATHER_ICON_WIDTH));
   bitmap_layer_set_compositing_mode(s_layer_weather, GCompOpSet);
   bitmap_layer_set_bitmap(s_layer_weather, s_bitmap_weather);
   layer_set_hidden((Layer *)s_layer_weather, true);
   
-  s_layer_bluetooth = bitmap_layer_create(GRect(center.x + BLUETOOTH_OFFSET_X, center.y - 10, 20, 20));
+  s_layer_bluetooth = bitmap_layer_create(GRect(center.x + BLUETOOTH_X, center.y + BLUETOOTH_Y, BLUETOOTH_WIDTH, BLUETOOTH_HEIGHT));
   bitmap_layer_set_compositing_mode(s_layer_bluetooth, GCompOpSet);
   bitmap_layer_set_bitmap(s_layer_bluetooth, s_bitmap_bluetooth);
   
@@ -456,7 +454,14 @@ void ui_load(Window *window) {
   s_layer_battery = layer_create(GRect(center.x + BATTERY_X, center.y + BATTERY_Y, BATTERY_WIDTH, 20));
   layer_set_update_proc(s_layer_battery, _layer_battery_update_callback);
   
+  s_layer_steps = text_layer_create(GRect(center.x + STEPS_X + STEPS_WIDTH + STEPS_TEXT_OFFSET_X, center.y + STEPS_Y + STEPS_TEXT_OFFSET_Y, STEPS_TEXT_WIDTH, STEPS_TEXT_HEIGHT));
+  text_layer_set_background_color(s_layer_steps, GColorClear);
+  text_layer_set_text_alignment(s_layer_steps, GTextAlignmentLeft);
+  text_layer_set_font(s_layer_steps, s_font);
+  layer_set_hidden((Layer *)s_layer_steps, true);
+  
   layer_add_child(window_layer, s_layer_canvas);
+  layer_add_child(window_layer, text_layer_get_layer(s_layer_steps));
   layer_add_child(window_layer, text_layer_get_layer(s_layer_day_of_month));
   layer_add_child(window_layer, text_layer_get_layer(s_layer_weekday));
   layer_add_child(window_layer, text_layer_get_layer(s_layer_temperature));
@@ -470,6 +475,7 @@ void ui_unload(void) {
   text_layer_destroy(s_layer_day_of_month);
   text_layer_destroy(s_layer_weekday);
   text_layer_destroy(s_layer_temperature);
+  text_layer_destroy(s_layer_steps);
   
   bitmap_layer_destroy(s_layer_weather);
   bitmap_layer_destroy(s_layer_bluetooth);
@@ -477,8 +483,7 @@ void ui_unload(void) {
   layer_destroy(s_layer_battery);
   layer_destroy(s_layer_canvas);
   
-  fonts_unload_custom_font(s_font_big);
-  fonts_unload_custom_font(s_font_small);
+  fonts_unload_custom_font(s_font);
   
   gbitmap_destroy(s_bitmap_weather);
   gbitmap_destroy(s_bitmap_bluetooth);
@@ -524,12 +529,10 @@ void ui_update_weather() {
 void ui_update_config() {
   _generate_bitmaps();
 
-  layer_set_hidden((Layer*)s_layer_temperature, !config_show_weather());
-  layer_set_hidden((Layer*)s_layer_weather, !config_show_weather());
-  
   text_layer_set_text_color(s_layer_temperature, config_get_color_text());
   text_layer_set_text_color(s_layer_weekday, config_get_color_bg());
   text_layer_set_text_color(s_layer_day_of_month, config_get_color_bg());
-
+  text_layer_set_text_color(s_layer_steps, config_get_color_text());
+  
   ui_show();
 }

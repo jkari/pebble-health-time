@@ -12,8 +12,6 @@ static EventHandle handle_app_message_outbox_failed;
 MessageType _get_message_type(DictionaryIterator* iterator) {
   if (dict_find(iterator, MESSAGE_KEY_USE_CELCIUS) != NULL) {
     return MSG_TYPE_CONFIG;
-  } else if (dict_find(iterator, MESSAGE_KEY_TEMPERATURE)) {
-    return MSG_TYPE_WEATHER;
   }
   
   Tuple *message_type = dict_find(iterator, MESSAGE_KEY_MESSAGE_TYPE);
@@ -30,9 +28,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   
   switch (_get_message_type(iterator)) {
     case MSG_TYPE_CONFIG: config_received_callback(iterator); break;
-    case MSG_TYPE_WEATHER: weather_received_callback(iterator); break;
     case MSG_TYPE_READY: communication_ready(); break;
-    case MSG_TYPE_FORCE_UPDATE: break;
     case MSG_TYPE_UNKNOWN: LOG("Received unknown message"); break;
   }
 }
@@ -51,8 +47,8 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 
 void communication_init() {
   LOG("Initializing communication");
-  events_app_message_request_inbox_size(1024);
-  events_app_message_request_outbox_size(128);
+  events_app_message_request_inbox_size(256);
+  events_app_message_request_outbox_size(256);
   
   handle_app_message_inbox_received = events_app_message_register_inbox_received(inbox_received_callback, NULL);
   handle_app_message_inbox_dropped = events_app_message_register_inbox_dropped(inbox_dropped_callback, NULL);
@@ -67,16 +63,6 @@ void communication_deinit() {
   events_app_message_unsubscribe(handle_app_message_inbox_dropped);
   events_app_message_unsubscribe(handle_app_message_outbox_sent);
   events_app_message_unsubscribe(handle_app_message_outbox_failed);
-}
-
-void communication_request_weather() {
-  int use_celcius = config_get_use_celcius() ? 1 : 0;
-  LOG("Sending weather request");
-  
-  DictionaryIterator *iter;
-  app_message_outbox_begin(&iter);
-  dict_write_int(iter, MESSAGE_KEY_USE_CELCIUS, &use_celcius, sizeof(int), true);
-  app_message_outbox_send();
 }
 
 void communication_ready() {

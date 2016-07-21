@@ -54,6 +54,46 @@ module.exports = [
             "value": "0"
           }
         ]
+      },
+      {
+        "id": "weather-provider",
+        "type": "select",
+        "messageKey": "WEATHER_PROVIDER",
+        "label": "Weather provider",
+        "defaultValue": "owm",
+        "options": [
+          {
+            "label": "Forecast.io",
+            "value": "fio"
+          },
+          {
+            "label": "OpenWeatherMap",
+            "value": "owm"
+          },
+          {
+            "label": "Weather Underground",
+            "value": "wu"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "defaultValue": "You need to provide API key for the selected provider."
+      },
+      {
+        "type": "input",
+        "messageKey": "APIKEY_FORECASTIO",
+        "label": "API Key for Forecast.io"
+      },
+      {
+        "type": "input",
+        "messageKey": "APIKEY_OPENWEATHERMAP",
+        "label": "API Key for OpenWeatherMap"
+      },
+      {
+        "type": "input",
+        "messageKey": "APIKEY_WEATHERUNDERGROUND",
+        "label": "API Key for WeatherUnderground"
       }
     ]
   },

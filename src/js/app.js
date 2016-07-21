@@ -1,6 +1,10 @@
+var GenericWeather = require('pebble-generic-weather');
+var genericWeather = new GenericWeather();
+
 var Clay = require('pebble-clay');
 var clayConfig = require('./config');
-var clay = new Clay(clayConfig);
+var clayCustom = require('./clay-custom');
+var clay = new Clay(clayConfig, clayCustom);
 
 /*
 * KiezelPay Integration Library - v1.5 - Copyright Kiezel 2016
@@ -31,7 +35,7 @@ var clay = new Clay(clayConfig);
 require('message_keys');
 
 /* === KIEZELPAY === SET TO false BEFORE RELEASING === */
-var KIEZELPAY_LOGGING = true;
+var KIEZELPAY_LOGGING = false;
 /* === KIEZELPAY === SET TO false BEFORE RELEASING === */
 
 
@@ -195,6 +199,7 @@ Pebble.addEventListener("appmessage", function (e) {
 /* === KIEZELPAY === GENERATED CODE END === DO NOT MODIFY ABOVE === */
 /********************************************************************/
 
+
 var MESSAGE_TYPE_READY = 100,
     MESSAGE_TYPE_WEATHER = 200;
 
@@ -207,23 +212,23 @@ Pebble.addEventListener("ready", function (e) {
   kiezelPayInit(onAppMessageReceived);
 
   //add your own "ready" code here
-  Pebble.sendAppMessage(
-    {
-      MESSAGE_TYPE: MESSAGE_TYPE_READY
-    },
-    function(e) {
-      console.log('JS Ready message sent');
-    },
-    function(e) {
-      console.log('JS Ready message failed to send');
-    }
-  );
+  setTimeout(function() {
+    Pebble.sendAppMessage(
+      {
+        MESSAGE_TYPE: MESSAGE_TYPE_READY
+      },
+      function(e) {
+        console.log('JS Ready message sent');
+      },
+      function(e) {
+        console.log('JS Ready message failed to send');
+      }
+    );
+  }, 1000);
 });
 
 function onAppMessageReceived(appMsg) {
-  console.log('AppMessage data: ' + appMsg.payload.USE_CELCIUS);
-  useCelcius = appMsg.payload.USE_CELCIUS;
-  getWeather();
+  genericWeather.appMessageHandler(appMsg);
 }
 
 //

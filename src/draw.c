@@ -31,7 +31,7 @@ static int _get_amount_corners(float angle_from, float angle_to, GSize size) {
   while (corners < 0) {
     corners += 4;
   }
-  if (angle_from > angle_to) {
+  if (corners == 0 && (angle_from > angle_to || angle_to - angle_from > 90)) {
     corners += 4;
   }
   

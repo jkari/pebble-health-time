@@ -6,9 +6,7 @@
 
 typedef enum {
   MSG_TYPE_CONFIG,
-  MSG_TYPE_FORCE_UPDATE,
   MSG_TYPE_READY = 100,
-  MSG_TYPE_WEATHER = 200,
   MSG_TYPE_UNKNOWN
 } MessageType;
 
